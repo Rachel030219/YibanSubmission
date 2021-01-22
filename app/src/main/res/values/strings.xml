@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">Yiban Submission</string>
+    <string name="unexpected_error">Something unexpected occurred.</string>
+
+    <string name="login_mobile">Mobile number</string>
+    <string name="login_password">Password</string>
+    <string name="login_button">Login</string>
+    <string name="loading">Loading…</string>
+
+    <string name="uncompleted_label">Uncompleted tasks of %s</string>
+    <string name="completed_label">Completed tasks of %s</string>
+
+    <string name="start_time">Starts at: %s</string>
+    <string name="end_time">Ends at: %s</string>
+    <string name="submit_temperature">Body temperature</string>
+    <string name="submit_location">Location</string>
+    <string name="submit_button">Submit</string>
+    <string name="no_uncompleted_tasks">Uncompleted tasks not found.</string>
+    <string name="task_location_error">Please check your location.</string>
+    <string name="task_done">Done! URL for the task is copied to clipboard.</string>
+</resources>

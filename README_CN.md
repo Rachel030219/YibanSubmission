@@ -1,17 +1,18 @@
-# YibanSubmission
-A tool to evolve Yiban's health submission experience on Android devices, thanks to previous work by seniors.
+# 易班打卡助手
 
-[简体中文](./README_CN.md)
+在 Android 设备上进化易班健康打卡体验的工具，感谢诸位学长和前辈不可磨灭的贡献。
 
-### Features:
+[English](./README.md)
 
-- [x] Basic functions such as logging in and submitting data
-- [ ] Persistent login data with encrypted password
-- [ ] Information and Q&A
-- [ ] Display both completed and uncompleted tasks
-- [ ] Notification with direct reply feature to submit data, sent at a specified time each day
+### 特性：
 
-### Credits:
+- [x] 基础特性，如登录与打卡
+- [ ] 自动登录，保存（加密）密码
+- [ ] 信息与常见问题
+- [ ] 添加已完成打卡任务的展示
+- [ ] 使用直接回复特性打卡的，每日特定时间发送的通知
+
+### 感谢：
 
 Android Jetpack by Google
 
@@ -33,6 +34,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### LICENSE
+### 许可协议
 
-View at [LICENSE file](./LICENSE) 
+查阅 [许可协议文件](./LICENSE) ，使用该项目及其代码则代表您已接受该协议。
