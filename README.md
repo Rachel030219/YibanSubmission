@@ -11,6 +11,16 @@ A tool to evolve Yiban's health submission experience on Android devices, thanks
 - [x] Display both completed and uncompleted tasks
 - [ ] Notification with direct reply feature to submit data, sent at a specified time each day
 
+### Disclaimer:
+
+This application is developed by Rachel030219 and all Contributors (hereinafter referred to as the "Developer Team"), and the "易班健康打卡" (also known as "易班打卡" or "健康打卡") service is operated by 教育部易班发展中心 and 上海易班企业发展有限公司 . The former owns and reserves all rights of the application, while the latter owns and reserves all rights of the logos or services such as "易班" and "易班健康打卡".
+
+This application is for learning and communication purposes only and is only responsible for the content provided by itself. It has no obligation or right to monitor any data uploaded, downloaded or modified by users in any form in this application. This application contains links to websites provided by "易班", which the developer team has no control over, and therefore the developer team cannot assume any responsibility for their contents.
+
+This application takes strict measures to protect the account and password (hereinafter referred to as "Login Credentials") that users use to log in to "易班". The Developer Team undertakes not to collect or store the Login Credentials, and the Application will not voluntarily disclose the Login Credentials to any third party other than the User and "易班" under any circumstances. The Developer Team is not responsible for any leakage of Login Credentials caused by the User's own negligence.
+
+> Mostly translated with www.DeepL.com/Translator (free version)
+
 ### Credits:
 
 Android Jetpack by Google
