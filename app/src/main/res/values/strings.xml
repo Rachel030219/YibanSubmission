@@ -13,7 +13,9 @@
     <string name="start_time">Starts at: %s</string>
     <string name="end_time">Ends at: %s</string>
     <string name="submit_temperature">Body temperature</string>
-    <string name="submit_location">Location</string>
+    <string name="submit_location_province">Province</string>
+    <string name="submit_location_city">City</string>
+    <string name="submit_location_county">County</string>
     <string name="submit_button">Submit</string>
     <string name="no_uncompleted_tasks">Uncompleted tasks not found.</string>
     <string name="no_completed_tasks">Completed tasks not found.</string>

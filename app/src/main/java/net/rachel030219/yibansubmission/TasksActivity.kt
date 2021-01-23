@@ -179,19 +179,30 @@ class TasksActivity: AppCompatActivity() {
                                             val taskDetail = jsonObject?.getJSONObject("data")
                                             val ex = "{\"TaskId\": \"${taskDetail?.getString("Id")}\", \"title\": \"任务信息\", \"content\": [{\"label\": \"任务名称\", \"value\": \"${taskDetail?.getString("Title")}\"}, {\"label\": \"发布机构\", \"value\": \"${taskDetail?.getString("PubOrgName")}\"}, {\"label\": \"发布人\", \"value\": \"${taskDetail?.getString("PubPersonName")}\"}]}"
 
-                                            // play animation and set click events
                                             CoroutineScope(Dispatchers.Main).launch {
+                                                // auto fiil in location
+                                                val locationPreferences = getSharedPreferences("location", MODE_PRIVATE)
+                                                val provinceFromPrefs = locationPreferences.getString("province", null)
+                                                val cityFromPrefs = locationPreferences.getString("city", null)
+                                                val countyFromPrefs = locationPreferences.getString("county", null)
+
+                                                if (!locationPreferences.getString("province", null).isNullOrBlank())
                                                 holder.itemProgress.visibility = View.GONE
                                                 holder.itemSubmitLayout.visibility = View.VISIBLE
                                                 holder.itemSubmitButton.setOnClickListener {
-                                                    val location = holder.itemSubmitLocation.text.toString().split(" ")
-                                                    val province: String
-                                                    val city: String
-                                                    val county: String
-                                                    if (location.size == 3) {
-                                                        province = location[0]
-                                                        city = location[1]
-                                                        county = location[2]
+                                                    val province = holder.itemSubmitLocationProvince.text
+                                                    val city = holder.itemSubmitLocationCity.text
+                                                    val county = holder.itemSubmitLocationCounty.text
+                                                    if (!province.isNullOrBlank() && !city.isNullOrBlank() && !county.isNullOrBlank()) {
+                                                        // save location
+                                                        locationPreferences.edit().apply {
+                                                            if (provinceFromPrefs != province.toString()) putString("province", province.toString())
+                                                            if (cityFromPrefs != city.toString()) putString("city", city.toString())
+                                                            if (countyFromPrefs != county.toString()) putString("county", county.toString())
+                                                            apply()
+                                                        }
+
+                                                        // construct data to be submitted
                                                         val data = "{\"b418fa886b6a38bdce72569a70b1fa10\":\"${holder.itemSubmitTemperature.text}\",\"c77d35b16fb22ec70a1f33c315141dbb\":\"${TimeUtils.getTimeNoSecond()}\",\"2fca911d0600717cc5c2f57fc3702787\":[\"$province\",\"$city\",\"$county\"]}"
 
                                                         // submit data
@@ -285,7 +296,9 @@ class TasksActivity: AppCompatActivity() {
         val itemEndTimeText: TextView = layout.findViewById(R.id.task_end)
         val itemSubmitLayout: LinearLayout = layout.findViewById(R.id.task_submit_layout)
         val itemSubmitTemperature: TextInputEditText = layout.findViewById(R.id.task_submit_temperature)
-        val itemSubmitLocation: TextInputEditText = layout.findViewById(R.id.task_submit_location)
+        val itemSubmitLocationProvince: TextInputEditText = layout.findViewById(R.id.task_submit_location_province)
+        val itemSubmitLocationCity: TextInputEditText = layout.findViewById(R.id.task_submit_location_city)
+        val itemSubmitLocationCounty: TextInputEditText = layout.findViewById(R.id.task_submit_location_county)
         val itemSubmitButton: MaterialButton = layout.findViewById(R.id.task_submit)
         val itemProgress: ProgressBar = layout.findViewById(R.id.task_progress)
         val itemDivider: View = layout.findViewById(R.id.task_divider)

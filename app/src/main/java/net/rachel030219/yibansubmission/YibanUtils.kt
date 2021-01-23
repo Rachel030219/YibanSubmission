@@ -15,7 +15,7 @@ object YibanUtils {
     private var okHttpClient: OkHttpClient? = null
     private const val CSRF = "RANDOM_VALUE"  // random value
     private val COOKIES = mapOf("csrf_token" to CSRF)  // fixed cookie
-    private var COOKIE_SET = "" // dynamic cookie TODO: use CookieJar to replace this
+    private var COOKIE_SET = "" // dynamic cookie | 开  源  拖  拉  机 | TODO: use CookieJar to replace this
     private val HEADERS = Headers.headersOf("Origin", "https://c.uyiban.com", "User-Agent", "yiban")  // fixed header
     private const val GET = 1
     private const val POST = 2

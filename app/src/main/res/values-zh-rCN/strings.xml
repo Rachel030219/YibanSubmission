@@ -14,7 +14,9 @@
     <string name="start_time">开始时间: %s</string>
     <string name="end_time">结束时间: %s</string>
     <string name="submit_temperature">体温</string>
-    <string name="submit_location">位置</string>
+    <string name="submit_location_province">省</string>
+    <string name="submit_location_city">市</string>
+    <string name="submit_location_county">县</string>
     <string name="submit_button">发射！</string>
     <string name="no_uncompleted_tasks">找不到未完成的打卡。</string>
     <string name="no_completed_tasks">找不到已完成的打卡。</string>
