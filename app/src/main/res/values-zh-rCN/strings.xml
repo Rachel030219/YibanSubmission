@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">易班打卡助手</string>
+    <string name="unexpected_error">发生了一点意外</string>
+
+    <string name="login_mobile">手机号码</string>
+    <string name="login_password">密码</string>
+    <string name="login_button">登陆</string>
+    <string name="loading">加载中…</string>
+
+    <string name="uncompleted_label">%s 的未打卡</string>
+    <string name="completed_label">%s 的已打卡</string>
+
+    <string name="start_time">开始时间: %s</string>
+    <string name="end_time">结束时间: %s</string>
+    <string name="submit_temperature">体温</string>
+    <string name="submit_location">位置</string>
+    <string name="submit_button">发射！</string>
+    <string name="no_uncompleted_tasks">找不到未完成的打卡。</string>
+    <string name="no_completed_tasks">找不到已完成的打卡。</string>
+    <string name="task_location_error">请检查位置。</string>
+    <string name="task_done">完成！已复制打卡结果链接。</string>
+    <string name="task_menu_switch">展示已完成/未完成</string>
+</resources>

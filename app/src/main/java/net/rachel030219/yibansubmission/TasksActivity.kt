@@ -113,12 +113,14 @@ class TasksActivity: AppCompatActivity() {
                                     }
                                 }
                             }
-                            if (showingUncompleted) {
-                                YibanUtils.getUncompletedList(tasksFetchListener)
-                                title = resources.getString(R.string.uncompleted_label, YibanUtils.name)
-                            } else {
-                                YibanUtils.getCompletedList(tasksFetchListener)
-                                title = resources.getString(R.string.completed_label, YibanUtils.name)
+                            CoroutineScope(Dispatchers.Main).launch {
+                                title = if (showingUncompleted) {
+                                    YibanUtils.getUncompletedList(tasksFetchListener)
+                                    resources.getString(R.string.uncompleted_label, YibanUtils.name)
+                                } else {
+                                    YibanUtils.getCompletedList(tasksFetchListener)
+                                    resources.getString(R.string.completed_label, YibanUtils.name)
+                                }
                             }
                         }
                     }
