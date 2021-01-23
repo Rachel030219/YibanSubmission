@@ -189,7 +189,7 @@ object YibanUtils {
     }
 
     fun getCompletedList (taskListener: NetworkTaskListener?) {
-        val params = mapOf("CSRF" to CSRF, "StartTime" to TimeUtils.get7DayAgo(), "EndTime" to TimeUtils.getTime())
+        val params = mapOf("CSRF" to CSRF, "StartTime" to TimeUtils.get14DayAgo(), "EndTime" to TimeUtils.getTime())
         taskListener?.onTaskStart()
         networkScope.launch {
             taskListener?.onTaskFinished(request("https://api.uyiban.com/officeTask/client/index/completedList", params = params, cookies = COOKIES))

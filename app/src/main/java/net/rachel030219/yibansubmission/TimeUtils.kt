@@ -17,8 +17,8 @@ object TimeUtils {
         return SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
     }
 
-    fun get7DayAgo (): String {
-        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -7) }.time)
+    fun get14DayAgo (): String {
+        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -14) }.time)
     }
 
     fun descendSort (array: Array<JSONObject>, key: String = "FeedbackTime"): Array<JSONObject>{
