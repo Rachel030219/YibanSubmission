@@ -6,7 +6,7 @@ A tool to evolve Yiban's health submission experience on Android devices, thanks
 ### Features:
 
 - [x] Basic functions such as logging in and submitting data
-- [ ] Persistent login data with encrypted password
+- [x] Persistent login data with encrypted password
 - [ ] Information and Q&A
 - [ ] Display both completed and uncompleted tasks
 - [ ] Notification with direct reply feature to submit data, sent at a specified time each day

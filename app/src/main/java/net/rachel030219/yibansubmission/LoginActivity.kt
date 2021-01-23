@@ -10,6 +10,7 @@ import android.view.ViewAnimationUtils
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
 import androidx.core.animation.doOnStart
+import androidx.preference.PreferenceManager
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +23,16 @@ class LoginActivity: AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // read saved account and password
+        val preferences = PreferenceManager.getDefaultSharedPreferences(this@LoginActivity)
+        val mobileFromPref = preferences.getString("mobile", null)
+        val passwordFromPref = preferences.getString("password", null)
+        // automatically fill in data
+        if (!mobileFromPref.isNullOrBlank() && !passwordFromPref.isNullOrBlank()) {
+            login_mobile.text!!.append(mobileFromPref)
+            login_password.text!!.append(EncryptionUtils.decrypt(passwordFromPref, mobileFromPref))
+        }
 
         login_button.setOnClickListener {
             // reveal animation
@@ -39,8 +50,12 @@ class LoginActivity: AppCompatActivity() {
             }
             anim.start()
 
+            // save the password
+            val mobile = login_mobile.text.toString()
+            val password = EncryptionUtils.encrypt(login_password.text.toString(), login_mobile.text.toString())
+
             // process logging in
-            YibanUtils.initialize(login_mobile.text.toString(), EncryptionUtils.encrypt(login_password.text.toString(), login_mobile.text.toString()))
+            YibanUtils.initialize(mobile, password)
             YibanUtils.login(object: NetworkTaskListener {
                 override fun onTaskStart() {}
                 override fun onTaskFinished(jsonObject: JSONObject?) {
@@ -53,6 +68,13 @@ class LoginActivity: AppCompatActivity() {
                             Handler(Looper.getMainLooper()).postDelayed({
                                 if (jsonObject.getInt("response") == 100) {
                                     startActivity(Intent(this@LoginActivity, TasksActivity::class.java))
+                                    // store account and password
+                                    if (preferences.getString("mobile", null) != mobile) {
+                                        preferences.edit().putString("mobile", mobile).apply()
+                                    }
+                                    if (preferences.getString("password", null) != password) {
+                                        preferences.edit().putString("password", password).apply()
+                                    }
                                     finish()
                                 } else {
                                     val endAnimX = login_progress_layout.width / 2
@@ -73,6 +95,8 @@ class LoginActivity: AppCompatActivity() {
                 }
             })
         }
+
+        // respond to enter
         login_password.setOnKeyListener { _, keyCode, event ->
             if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
                 login_button.callOnClick()
