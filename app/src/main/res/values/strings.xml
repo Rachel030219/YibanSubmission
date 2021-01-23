@@ -16,6 +16,8 @@
     <string name="submit_location">Location</string>
     <string name="submit_button">Submit</string>
     <string name="no_uncompleted_tasks">Uncompleted tasks not found.</string>
+    <string name="no_completed_tasks">Completed tasks not found.</string>
     <string name="task_location_error">Please check your location.</string>
     <string name="task_done">Done! URL for the task is copied to clipboard.</string>
+    <string name="task_menu_switch">Show completed/uncompleted</string>
 </resources>

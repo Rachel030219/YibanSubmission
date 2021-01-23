@@ -24,7 +24,7 @@ object YibanUtils {
     private var mobileNumber = ""
     private var encryptedPassword = ""
     private var accessToken = ""
-    private var name = ""
+    var name = ""
     private var iapp = ""
 
     // networking

@@ -3,13 +3,13 @@ package net.rachel030219.yibansubmission
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.util.TypedValue
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -29,6 +29,7 @@ import org.json.JSONObject
 class TasksActivity: AppCompatActivity() {
     var mData: MutableList<Task>? = null
     var recyclerAdapter: Adapter? = null
+    var showingUncompleted = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +44,22 @@ class TasksActivity: AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadData()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.tasks_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.tasks_menu_switch -> {
+                showingUncompleted = !showingUncompleted
+                loadData()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     private fun loadData () {
@@ -62,7 +79,7 @@ class TasksActivity: AppCompatActivity() {
                                 tasks_hint.visibility = View.VISIBLE
                             }
                         } else {
-                            YibanUtils.getUncompletedList(object : NetworkTaskListener {
+                            val tasksFetchListener = object : NetworkTaskListener {
                                 override fun onTaskStart() {
                                 }
 
@@ -88,14 +105,21 @@ class TasksActivity: AppCompatActivity() {
                                                 tasks_hint.text = jsonObject.optString("content")
                                             else if (jsonObject?.optInt("code") != 0)
                                                 tasks_hint.text = jsonObject?.optString("msg")
-                                                        ?: resources.getString(R.string.unexpected_error)
+                                                    ?: resources.getString(R.string.unexpected_error)
                                             else
-                                                tasks_hint.text = resources.getString(R.string.no_uncompleted_tasks)
+                                                tasks_hint.text = if (showingUncompleted) resources.getString(R.string.no_uncompleted_tasks) else resources.getString(R.string.no_completed_tasks)
                                             tasks_hint.visibility = View.VISIBLE
                                         }
                                     }
                                 }
-                            })
+                            }
+                            if (showingUncompleted) {
+                                YibanUtils.getUncompletedList(tasksFetchListener)
+                                title = resources.getString(R.string.uncompleted_label, YibanUtils.name)
+                            } else {
+                                YibanUtils.getCompletedList(tasksFetchListener)
+                                title = resources.getString(R.string.completed_label, YibanUtils.name)
+                            }
                         }
                     }
                 })
@@ -126,89 +150,124 @@ class TasksActivity: AppCompatActivity() {
                 holder.itemEndTimeText.text = resources.getString(R.string.end_time, mData!![position].endTime)
 
                 // expansion animation and data fetching
-                var initialized = false
-                var expanded = false
-                holder.itemCard.setOnClickListener {
-                    if (expanded) {
-                        holder.itemCard.cardElevation = dpToPx(2.0f, this@TasksActivity)
-                        holder.itemDivider.visibility = View.GONE
-                        holder.itemProgress.visibility = View.GONE
-                        holder.itemSubmitLayout.visibility = View.GONE
-                        holder.itemIndicator.rotation = 0f
-                        expanded = false
-                    } else {
-                        holder.itemCard.cardElevation = dpToPx(4.0f, this@TasksActivity)
-                        holder.itemDivider.visibility = View.VISIBLE
-                        holder.itemIndicator.rotation = -90f
-                        if (initialized) {
-                            holder.itemSubmitLayout.visibility = View.VISIBLE
+                if (showingUncompleted) {
+                    var initialized = false
+                    var expanded = false
+                    holder.itemCard.setOnClickListener {
+                        if (expanded) {
+                            holder.itemCard.cardElevation = dpToPx(2.0f, this@TasksActivity)
+                            holder.itemDivider.visibility = View.GONE
+                            holder.itemProgress.visibility = View.GONE
+                            holder.itemSubmitLayout.visibility = View.GONE
+                            holder.itemIndicator.rotation = 0f
+                            expanded = false
                         } else {
-                            holder.itemProgress.visibility = View.VISIBLE
-                            mData!![position].rawJSONData?.optString("TaskId")?.let { taskID ->
-                                YibanUtils.getTaskDetail(taskID, object : NetworkTaskListener {
-                                    override fun onTaskStart() {}
-                                    override fun onTaskFinished(jsonObject: JSONObject?) {
-                                        // initialize extra data
-                                        val taskDetail = jsonObject?.getJSONObject("data")
-                                        val ex = "{\"TaskId\": \"${taskDetail?.getString("Id")}\", \"title\": \"任务信息\", \"content\": [{\"label\": \"任务名称\", \"value\": \"${taskDetail?.getString("Title")}\"}, {\"label\": \"发布机构\", \"value\": \"${taskDetail?.getString("PubOrgName")}\"}, {\"label\": \"发布人\", \"value\": \"${taskDetail?.getString("PubPersonName")}\"}]}"
+                            holder.itemCard.cardElevation = dpToPx(4.0f, this@TasksActivity)
+                            holder.itemDivider.visibility = View.VISIBLE
+                            holder.itemIndicator.rotation = -90f
+                            if (initialized) {
+                                holder.itemSubmitLayout.visibility = View.VISIBLE
+                            } else {
+                                holder.itemProgress.visibility = View.VISIBLE
+                                mData!![position].rawJSONData?.optString("TaskId")?.let { taskID ->
+                                    YibanUtils.getTaskDetail(taskID, object : NetworkTaskListener {
+                                        override fun onTaskStart() {}
+                                        override fun onTaskFinished(jsonObject: JSONObject?) {
+                                            // initialize extra data
+                                            val taskDetail = jsonObject?.getJSONObject("data")
+                                            val ex = "{\"TaskId\": \"${taskDetail?.getString("Id")}\", \"title\": \"任务信息\", \"content\": [{\"label\": \"任务名称\", \"value\": \"${taskDetail?.getString("Title")}\"}, {\"label\": \"发布机构\", \"value\": \"${taskDetail?.getString("PubOrgName")}\"}, {\"label\": \"发布人\", \"value\": \"${taskDetail?.getString("PubPersonName")}\"}]}"
 
-                                        // play animation and set click events
-                                        CoroutineScope(Dispatchers.Main).launch {
-                                            holder.itemProgress.visibility = View.GONE
-                                            holder.itemSubmitLayout.visibility = View.VISIBLE
-                                            holder.itemSubmitButton.setOnClickListener {
-                                                val location = holder.itemSubmitLocation.text.toString().split(" ")
-                                                val province: String
-                                                val city: String
-                                                val county: String
-                                                if (location.size == 3) {
-                                                    province = location[0]
-                                                    city = location[1]
-                                                    county = location[2]
-                                                    val data = "{\"b418fa886b6a38bdce72569a70b1fa10\":\"${holder.itemSubmitTemperature.text}\",\"c77d35b16fb22ec70a1f33c315141dbb\":\"${TimeUtils.getTimeNoSecond()}\",\"2fca911d0600717cc5c2f57fc3702787\":[\"$province\",\"$city\",\"$county\"]}"
+                                            // play animation and set click events
+                                            CoroutineScope(Dispatchers.Main).launch {
+                                                holder.itemProgress.visibility = View.GONE
+                                                holder.itemSubmitLayout.visibility = View.VISIBLE
+                                                holder.itemSubmitButton.setOnClickListener {
+                                                    val location = holder.itemSubmitLocation.text.toString().split(" ")
+                                                    val province: String
+                                                    val city: String
+                                                    val county: String
+                                                    if (location.size == 3) {
+                                                        province = location[0]
+                                                        city = location[1]
+                                                        county = location[2]
+                                                        val data = "{\"b418fa886b6a38bdce72569a70b1fa10\":\"${holder.itemSubmitTemperature.text}\",\"c77d35b16fb22ec70a1f33c315141dbb\":\"${TimeUtils.getTimeNoSecond()}\",\"2fca911d0600717cc5c2f57fc3702787\":[\"$province\",\"$city\",\"$county\"]}"
 
-                                                    // submit data
-                                                    YibanUtils.submit(data, ex, taskDetail?.getString("WFId")?: "Null", object: NetworkTaskListener{
-                                                        override fun onTaskStart() {}
-                                                        override fun onTaskFinished(jsonObject: JSONObject?) {
-                                                            if (jsonObject?.getInt("code") == 0) {
-                                                                YibanUtils.getShareUrl(jsonObject.getString("data"), object: NetworkTaskListener{
-                                                                    override fun onTaskStart() {}
-                                                                    override fun onTaskFinished(jsonObject: JSONObject?) {
-                                                                        val shareURL = jsonObject?.getJSONObject("data")?.getString("uri")
-                                                                        (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("share URL", shareURL))
-                                                                        showResult(true, resources.getString(R.string.task_done), holder)
-                                                                        Handler(mainLooper).postDelayed({
-                                                                            mData!!.removeAt(position)
-                                                                            recyclerAdapter?.notifyItemRemoved(position)
-                                                                            loadData()
-                                                                        }, 1000)
-                                                                    }
-                                                                })
-                                                            } else {
-                                                                showResult(false, jsonObject?.getString("msg")?: resources.getString(R.string.unexpected_error), holder)
-                                                                Handler(mainLooper).postDelayed({
-                                                                    holder.itemHintText.visibility = View.GONE
-                                                                    holder.itemSubmitLayout.visibility = View.VISIBLE
-                                                                }, 1000)
+                                                        // submit data
+                                                        YibanUtils.submit(data, ex, taskDetail?.getString("WFId")?: "Null", object: NetworkTaskListener{
+                                                            override fun onTaskStart() {}
+                                                            override fun onTaskFinished(jsonObject: JSONObject?) {
+                                                                if (jsonObject?.getInt("code") == 0) {
+                                                                    YibanUtils.getShareUrl(jsonObject.getString("data"), object: NetworkTaskListener{
+                                                                        override fun onTaskStart() {}
+                                                                        override fun onTaskFinished(jsonObject: JSONObject?) {
+                                                                            val shareURL = jsonObject?.getJSONObject("data")?.getString("uri")
+                                                                            (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("share URL", shareURL))
+                                                                            showResult(true, resources.getString(R.string.task_done), holder)
+                                                                            Handler(mainLooper).postDelayed({
+                                                                                holder.itemHintText.visibility = View.GONE
+                                                                                holder.itemSubmitLayout.visibility = View.VISIBLE
+                                                                                mData!!.removeAt(position)
+                                                                                recyclerAdapter?.notifyItemRemoved(position)
+                                                                                loadData()
+                                                                            }, 1000)
+                                                                        }
+                                                                    })
+                                                                } else {
+                                                                    showResult(false, jsonObject?.getString("msg")?: resources.getString(R.string.unexpected_error), holder)
+                                                                    Handler(mainLooper).postDelayed({
+                                                                        holder.itemHintText.visibility = View.GONE
+                                                                        holder.itemSubmitLayout.visibility = View.VISIBLE
+                                                                    }, 1000)
+                                                                }
                                                             }
-                                                        }
-                                                    })
-                                                } else {
-                                                    showResult(false, resources.getString(R.string.task_location_error), holder)
-                                                    Handler(mainLooper).postDelayed({
-                                                            holder.itemHintText.visibility = View.GONE
-                                                            holder.itemSubmitLayout.visibility = View.VISIBLE
-                                                        }, 1000)
+                                                        })
+                                                    } else {
+                                                        showResult(false, resources.getString(R.string.task_location_error), holder)
+                                                        Handler(mainLooper).postDelayed({
+                                                                holder.itemHintText.visibility = View.GONE
+                                                                holder.itemSubmitLayout.visibility = View.VISIBLE
+                                                            }, 1000)
+                                                    }
                                                 }
                                             }
                                         }
-                                    }
-                                })
+                                    })
+                                }
+                                initialized = true
                             }
-                            initialized = true
+                            expanded = true
                         }
-                        expanded = true
+                    }
+                } else {
+                    holder.itemCard.setOnClickListener {
+                        holder.itemCard.cardElevation = dpToPx(4.0f, this@TasksActivity)
+                        holder.itemDivider.visibility = View.VISIBLE
+                        holder.itemProgress.visibility = View.VISIBLE
+                        mData!![position].rawJSONData?.optString("TaskId")?.let { taskID ->
+                            YibanUtils.getTaskDetail(taskID, object: NetworkTaskListener {
+                                override fun onTaskStart() {}
+                                override fun onTaskFinished(jsonObject: JSONObject?) {
+                                    // initialize extra data
+                                    val taskDetail = jsonObject?.getJSONObject("data")
+                                    // get share url by string InitiateId
+                                    if (taskDetail != null) {
+                                        YibanUtils.getShareUrl(taskDetail.getString("InitiateId"), object: NetworkTaskListener {
+                                            override fun onTaskStart() {}
+
+                                            override fun onTaskFinished(jsonObject: JSONObject?) {
+                                                val shareURL = jsonObject?.getJSONObject("data")?.getString("uri")
+                                                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(shareURL)))
+                                            }
+                                        })
+                                        CoroutineScope(Dispatchers.Main).launch {
+                                            holder.itemCard.cardElevation = dpToPx(2.0f, this@TasksActivity)
+                                            holder.itemProgress.visibility = View.GONE
+                                            holder.itemDivider.visibility = View.GONE
+                                        }
+                                    }
+                                }
+                            })
+                        }
                     }
                 }
             }
