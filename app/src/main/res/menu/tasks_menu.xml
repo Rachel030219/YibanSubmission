@@ -5,4 +5,8 @@
         android:icon="@drawable/ic_baseline_sync_24"
         android:title="@string/task_menu_switch"
         app:showAsAction="ifRoom"/>
+    <item android:id="@+id/tasks_menu_info"
+        android:icon="@drawable/ic_outline_info_24"
+        android:title="@string/task_menu_info"
+        app:showAsAction="ifRoom"/>
 </menu>

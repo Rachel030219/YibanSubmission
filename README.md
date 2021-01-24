@@ -7,9 +7,20 @@ A tool to evolve Yiban's health submission experience on Android devices, thanks
 
 - [x] Basic functions such as logging in and submitting data
 - [x] Persistent login data with encrypted password
-- [ ] Information and Q&A
+- [x] Information and Q&A
 - [x] Display both completed and uncompleted tasks
 - [ ] Notification with direct reply feature to submit data, sent at a specified time each day
+
+### FAQ:
+
+> **Does this app collect my data?**
+> No.
+
+> **How will my mobile number, password and location be saved?**
+> Your mobile number and location will be stored where only this app, your system and the apps you grant root permission have access to. The password is as well, but encrypted before it is stored.
+
+> **Is this app interrupting the prevention and control of the COVID-19?**
+> All the data are provided by the user, this app does not offer any option to submit data without user confirmation. What it all does is simplifying the steps, which is believed to help the user focus on their health instead of massive procedures.
 
 ### Disclaimer:
 

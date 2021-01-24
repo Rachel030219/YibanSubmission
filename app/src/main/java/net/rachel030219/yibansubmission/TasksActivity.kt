@@ -25,6 +25,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.util.*
 
 class TasksActivity: AppCompatActivity() {
     var mData: MutableList<Task>? = null
@@ -56,6 +57,11 @@ class TasksActivity: AppCompatActivity() {
             R.id.tasks_menu_switch -> {
                 showingUncompleted = !showingUncompleted
                 loadData()
+                true
+            }
+            R.id.tasks_menu_info -> {
+                val targetURL = if (Locale.getDefault().language == Locale.CHINESE.language) "https://github.com/Rachel030219/YibanSubmission/blob/master/README_CN.md" else "https://github.com/Rachel030219/YibanSubmission/blob/master/README.md"
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(targetURL)))
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -184,7 +190,7 @@ class TasksActivity: AppCompatActivity() {
                                             val ex = "{\"TaskId\": \"${taskDetail?.getString("Id")}\", \"title\": \"任务信息\", \"content\": [{\"label\": \"任务名称\", \"value\": \"${taskDetail?.getString("Title")}\"}, {\"label\": \"发布机构\", \"value\": \"${taskDetail?.getString("PubOrgName")}\"}, {\"label\": \"发布人\", \"value\": \"${taskDetail?.getString("PubPersonName")}\"}]}"
 
                                             CoroutineScope(Dispatchers.Main).launch {
-                                                // auto fiil in location
+                                                // auto fill in location
                                                 val locationPreferences = getSharedPreferences("location", MODE_PRIVATE)
                                                 val provinceFromPrefs = locationPreferences.getString("province", null)
                                                 val cityFromPrefs = locationPreferences.getString("city", null)

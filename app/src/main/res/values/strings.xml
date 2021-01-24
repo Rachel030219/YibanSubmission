@@ -22,4 +22,5 @@
     <string name="task_location_error">Please check your location.</string>
     <string name="task_done">Done! URL for the task is copied to clipboard.</string>
     <string name="task_menu_switch">Show completed/uncompleted</string>
+    <string name="task_menu_info">Information and FAQ</string>
 </resources>

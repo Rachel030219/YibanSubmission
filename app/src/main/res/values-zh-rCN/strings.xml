@@ -23,4 +23,5 @@
     <string name="task_location_error">请检查位置。</string>
     <string name="task_done">完成！已复制打卡结果链接。</string>
     <string name="task_menu_switch">展示已完成/未完成</string>
+    <string name="task_menu_info">信息与常见问题</string>
 </resources>
