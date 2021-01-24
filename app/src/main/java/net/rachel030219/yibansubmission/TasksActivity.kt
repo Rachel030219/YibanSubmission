@@ -141,6 +141,14 @@ class TasksActivity: AppCompatActivity() {
         }
     }
     
+    private fun collapseResult (targetHolder: Holder) {
+        targetHolder.itemCard.cardElevation = dpToPx(2.0f, this)
+        targetHolder.itemDivider.visibility = View.GONE
+        targetHolder.itemProgress.visibility = View.GONE
+        targetHolder.itemSubmitLayout.visibility = View.GONE
+        targetHolder.itemIndicator.rotation = 0f
+    }
+    
     inner class Adapter: RecyclerView.Adapter<Holder> () {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
             return Holder(LayoutInflater.from(this@TasksActivity).inflate(R.layout.item_tasks, parent, false))
@@ -157,11 +165,7 @@ class TasksActivity: AppCompatActivity() {
                     var expanded = false
                     holder.itemCard.setOnClickListener {
                         if (expanded) {
-                            holder.itemCard.cardElevation = dpToPx(2.0f, this@TasksActivity)
-                            holder.itemDivider.visibility = View.GONE
-                            holder.itemProgress.visibility = View.GONE
-                            holder.itemSubmitLayout.visibility = View.GONE
-                            holder.itemIndicator.rotation = 0f
+                            collapseResult(holder)
                             expanded = false
                         } else {
                             holder.itemCard.cardElevation = dpToPx(4.0f, this@TasksActivity)
@@ -170,7 +174,7 @@ class TasksActivity: AppCompatActivity() {
                             if (initialized) {
                                 holder.itemSubmitLayout.visibility = View.VISIBLE
                             } else {
-                                holder.itemProgress.visibility = View.VISIBLE
+                                holder.itemProgress.visibility = View.GONE
                                 mData!![position].rawJSONData?.optString("TaskId")?.let { taskID ->
                                     YibanUtils.getTaskDetail(taskID, object : NetworkTaskListener {
                                         override fun onTaskStart() {}
@@ -213,12 +217,15 @@ class TasksActivity: AppCompatActivity() {
                                                                     YibanUtils.getShareUrl(jsonObject.getString("data"), object: NetworkTaskListener{
                                                                         override fun onTaskStart() {}
                                                                         override fun onTaskFinished(jsonObject: JSONObject?) {
+                                                                            // copy url to clipboard
                                                                             val shareURL = jsonObject?.getJSONObject("data")?.getString("uri")
                                                                             (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("share URL", shareURL))
+
+                                                                            // show result, then collapse it
                                                                             showResult(true, resources.getString(R.string.task_done), holder)
                                                                             Handler(mainLooper).postDelayed({
-                                                                                holder.itemHintText.visibility = View.GONE
-                                                                                holder.itemSubmitLayout.visibility = View.VISIBLE
+                                                                                collapseResult(holder)
+                                                                                expanded = false
                                                                                 mData!!.removeAt(position)
                                                                                 recyclerAdapter?.notifyItemRemoved(position)
                                                                                 loadData()
