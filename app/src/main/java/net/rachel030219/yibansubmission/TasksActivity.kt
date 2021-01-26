@@ -28,7 +28,7 @@ import org.json.JSONObject
 import java.util.*
 
 class TasksActivity: AppCompatActivity() {
-    var mData: MutableList<Task>? = null
+    var mData: MutableList<Task> = mutableListOf()
     var recyclerAdapter: Adapter? = null
     var showingUncompleted = true
 
@@ -69,6 +69,7 @@ class TasksActivity: AppCompatActivity() {
     }
 
     private fun loadData () {
+        tasks_recycler.invalidate()
         tasks_recycler.visibility = View.GONE
         tasks_hint.visibility = View.GONE
         tasks_progress_text.text = resources.getString(R.string.loading)
@@ -93,15 +94,15 @@ class TasksActivity: AppCompatActivity() {
                                     CoroutineScope(Dispatchers.Main).launch {
                                         tasks_progress_layout.visibility = View.INVISIBLE
                                         jsonObject?.optJSONArray("data")?.also {
-                                            mData = mutableListOf()
+                                            mData.clear()
                                             if (it.length() > 0)
                                                 for (i in 0 until it.length()) {
                                                     val uncompletedTask = it.getJSONObject(i)
                                                     if (uncompletedTask.getString("Title").contains("体温检测"))
-                                                        mData!!.add(Task(uncompletedTask.getString("Title"), uncompletedTask.getInt("StartTime").formatToDate(), uncompletedTask.getInt("EndTime").formatToDate(), uncompletedTask))
+                                                        mData.add(Task(uncompletedTask.getString("Title"), uncompletedTask.getInt("StartTime").formatToDate(), uncompletedTask.getInt("EndTime").formatToDate(), uncompletedTask))
                                                 }
                                         }
-                                        if (mData != null && mData!!.size > 0) {
+                                        if (mData.isNotEmpty()) {
                                             // update RecyclerView
                                             recyclerAdapter?.notifyDataSetChanged()
                                             tasks_recycler.visibility = View.VISIBLE
@@ -148,11 +149,13 @@ class TasksActivity: AppCompatActivity() {
     }
     
     private fun collapseResult (targetHolder: Holder) {
-        targetHolder.itemCard.cardElevation = dpToPx(2.0f, this)
-        targetHolder.itemDivider.visibility = View.GONE
-        targetHolder.itemProgress.visibility = View.GONE
-        targetHolder.itemSubmitLayout.visibility = View.GONE
-        targetHolder.itemIndicator.rotation = 0f
+        CoroutineScope(Dispatchers.Main).launch {
+            targetHolder.itemCard.cardElevation = dpToPx(2.0f, this@TasksActivity)
+            targetHolder.itemDivider.visibility = View.GONE
+            targetHolder.itemProgress.visibility = View.GONE
+            targetHolder.itemSubmitLayout.visibility = View.GONE
+            targetHolder.itemIndicator.rotation = 0f
+        }
     }
     
     inner class Adapter: RecyclerView.Adapter<Holder> () {
@@ -160,10 +163,10 @@ class TasksActivity: AppCompatActivity() {
             return Holder(LayoutInflater.from(this@TasksActivity).inflate(R.layout.item_tasks, parent, false))
         }
         override fun onBindViewHolder(holder: Holder, position: Int) {
-            if (mData != null) {
-                holder.itemTitleText.text = mData!![position].title
-                holder.itemStartTimeText.text = resources.getString(R.string.start_time, mData!![position].startTime)
-                holder.itemEndTimeText.text = resources.getString(R.string.end_time, mData!![position].endTime)
+            if (mData.isNotEmpty()) {
+                holder.itemTitleText.text = mData[position].title
+                holder.itemStartTimeText.text = resources.getString(R.string.start_time, mData[position].startTime)
+                holder.itemEndTimeText.text = resources.getString(R.string.end_time, mData[position].endTime)
 
                 // expansion animation and data fetching
                 if (showingUncompleted) {
@@ -181,7 +184,7 @@ class TasksActivity: AppCompatActivity() {
                                 holder.itemSubmitLayout.visibility = View.VISIBLE
                             } else {
                                 holder.itemProgress.visibility = View.GONE
-                                mData!![position].rawJSONData?.optString("TaskId")?.let { taskID ->
+                                mData[position].rawJSONData?.optString("TaskId")?.let { taskID ->
                                     YibanUtils.getTaskDetail(taskID, object : NetworkTaskListener {
                                         override fun onTaskStart() {}
                                         override fun onTaskFinished(jsonObject: JSONObject?) {
@@ -232,7 +235,7 @@ class TasksActivity: AppCompatActivity() {
                                                                             Handler(mainLooper).postDelayed({
                                                                                 collapseResult(holder)
                                                                                 expanded = false
-                                                                                mData!!.removeAt(position)
+                                                                                mData.removeAt(position)
                                                                                 recyclerAdapter?.notifyItemRemoved(position)
                                                                                 loadData()
                                                                             }, 1000)
@@ -269,7 +272,7 @@ class TasksActivity: AppCompatActivity() {
                         holder.itemCard.cardElevation = dpToPx(4.0f, this@TasksActivity)
                         holder.itemDivider.visibility = View.VISIBLE
                         holder.itemProgress.visibility = View.VISIBLE
-                        mData!![position].rawJSONData?.optString("TaskId")?.let { taskID ->
+                        mData[position].rawJSONData?.optString("TaskId")?.let { taskID ->
                             YibanUtils.getTaskDetail(taskID, object: NetworkTaskListener {
                                 override fun onTaskStart() {}
                                 override fun onTaskFinished(jsonObject: JSONObject?) {
@@ -285,11 +288,7 @@ class TasksActivity: AppCompatActivity() {
                                                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(shareURL)))
                                             }
                                         })
-                                        CoroutineScope(Dispatchers.Main).launch {
-                                            holder.itemCard.cardElevation = dpToPx(2.0f, this@TasksActivity)
-                                            holder.itemProgress.visibility = View.GONE
-                                            holder.itemDivider.visibility = View.GONE
-                                        }
+                                        collapseResult(holder)
                                     }
                                 }
                             })
@@ -298,8 +297,12 @@ class TasksActivity: AppCompatActivity() {
                 }
             }
         }
+        override fun onViewRecycled(holder: Holder) {
+            super.onViewRecycled(holder)
+            collapseResult(holder)
+        }
         override fun getItemCount(): Int {
-            return mData?.size ?: 0
+            return mData.size
         }
     }
     class Holder(layout: View): RecyclerView.ViewHolder (layout) {
