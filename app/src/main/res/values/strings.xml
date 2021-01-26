@@ -23,4 +23,11 @@
     <string name="task_done">Done! URL for the task is copied to clipboard.</string>
     <string name="task_menu_switch">Show completed/uncompleted</string>
     <string name="task_menu_info">Information and FAQ</string>
+    <string name="task_notification_channel">Task checking</string>
+    <string name="task_notification_title">New task: %s</string>
+    <string name="task_notification_message">Click to open the app</string>
+    <string name="task_notification_message_nougat">Click to view it in the app, or submit data from %s directly</string>
+    <string name="task_notification_action_submit">Submit</string>
+    <string name="task_notification_action_delay">Ask me later</string>
+    <string name="task_notification_submitting">Submitting…</string>
 </resources>

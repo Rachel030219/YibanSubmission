@@ -24,4 +24,11 @@
     <string name="task_done">完成！已复制打卡结果链接。</string>
     <string name="task_menu_switch">展示已完成/未完成</string>
     <string name="task_menu_info">信息与常见问题</string>
+    <string name="task_notification_channel">任务监测</string>
+    <string name="task_notification_title">新任务： %s</string>
+    <string name="task_notification_message">点击以在应用中查看</string>
+    <string name="task_notification_message_nougat">点击以在应用中查看，或直接提交在 %s 的体温</string>
+    <string name="task_notification_action_submit">提交数据</string>
+    <string name="task_notification_action_delay">稍后询问</string>
+    <string name="task_notification_submitting">提交中…</string>
 </resources>

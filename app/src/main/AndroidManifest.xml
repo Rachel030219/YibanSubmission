@@ -17,6 +17,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".TasksActivity"/>
+        <service android:name=".TaskCheckAffiliatedService"/>
     </application>
 
 </manifest>
