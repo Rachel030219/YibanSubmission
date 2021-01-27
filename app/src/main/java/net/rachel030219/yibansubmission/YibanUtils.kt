@@ -63,6 +63,7 @@ object YibanUtils {
             val response = okHttpClient!!.newCall(request).execute()
             if (response.isSuccessful && response.body != null) {
                 val rawData = response.body!!.string()
+                response.body?.close()
                 if (response.headers["set-cookie"] != null) {
                     COOKIE_SET = response.headers["set-cookie"]!!
                 }
@@ -128,7 +129,9 @@ object YibanUtils {
                     for ((name, content) in params) {
                         addQueryParameter(name, content)  // convert param map to query params
                     }
-                }.build()).build()).execute().headers["Location"]
+                }.build()).build()).execute().use {
+                    it.headers["Location"]
+                }
             if (location == null) {
                 taskListener?.onTaskFinished(JSONObject(mapOf("error" to true, "msg" to "Are you authorized to submit data?")))
                 return@launch
@@ -147,7 +150,9 @@ object YibanUtils {
                         addHeader("cookie",
                                 mapOf("loginToken" to accessToken).toCookieString()
                         )
-                    }.build()).execute().body?.string()
+                    }.build()).execute().use {
+                        it.body?.string()
+                    }
                     if (resultHTML != null) {
                         val regexResult = Regex("input type=\"hidden\" id=\"(.*?)\" value=\"(.*?)\"").findAll(resultHTML)
                         val postData = mutableMapOf("scope" to "1,2,3,")

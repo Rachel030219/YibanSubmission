@@ -22,12 +22,14 @@ object TimeUtils {
     }
 
     fun descendSort (array: Array<JSONObject>, key: String = "FeedbackTime"): Array<JSONObject>{
-        for (i in array.indices) {
-            for (j in 0 until array.size - i) {
-                if (array[j].getInt(key) < array[j+1].getInt(key)) {
-                    val temp = array[j]
-                    array[j] = array[j+1]
-                    array[j+1] = temp
+        if (array.size > 1) {
+            for (i in array.indices) {
+                for (j in 0 until array.size - i) {
+                    if (array[j].getInt(key) < array[j + 1].getInt(key)) {
+                        val temp = array[j]
+                        array[j] = array[j + 1]
+                        array[j + 1] = temp
+                    }
                 }
             }
         }

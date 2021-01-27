@@ -55,7 +55,6 @@ class TaskCheckWorker (private val context: Context, params: WorkerParameters): 
                                                             val savedLocation = arrayOf(locationPreferences.getString("province", null), locationPreferences.getString("city", null), locationPreferences.getString("county", null))
                                                             val displayLocation = savedLocation.joinToString()
 
-                                                            // construct notification
                                                             // create notification channel
                                                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                                                 val taskChannel = NotificationChannel("TASK", context.getString(R.string.task_notification_channel), NotificationManager.IMPORTANCE_DEFAULT)
@@ -66,48 +65,57 @@ class TaskCheckWorker (private val context: Context, params: WorkerParameters): 
                                                                     }
                                                                 }
                                                             }
-                                                            val taskNotification = NotificationCompat.Builder(context, "TASK").apply {
-                                                                setSmallIcon(R.drawable.ic_launcher_foreground)
-                                                                setContentTitle(context.getString(R.string.task_notification_title, taskTitle))
-                                                                setContentText(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) context.getString(R.string.task_notification_message_nougat, displayLocation) else context.getString(R.string.task_notification_message))
-                                                                setContentIntent(PendingIntent.getActivity(context, 0, Intent(context, TasksActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK }, PendingIntent.FLAG_CANCEL_CURRENT))
-                                                                setCategory(NotificationCompat.CATEGORY_REMINDER)
-                                                                setAutoCancel(true)
-                                                                addAction(NotificationCompat.Action.Builder(null, context.getString(R.string.task_notification_action_delay),
-                                                                    PendingIntent.getService(
-                                                                        context,
-                                                                        1,
-                                                                        Intent(context, TaskCheckAffiliatedService::class.java).putExtra("request", TaskCheckAffiliatedService.REQUEST_DELAY),
-                                                                        PendingIntent.FLAG_CANCEL_CURRENT)).build())
 
-                                                                // add direct reply action
-                                                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                                                                    YibanUtils.getTaskDetail(taskId, object: NetworkTaskListener {
-                                                                        override fun onTaskStart() {}
-                                                                        override fun onTaskFinished(taskDetail: JSONObject?) {
-                                                                            val ex = "{\"TaskId\": \"${taskDetail?.getString("Id")}\", \"title\": \"任务信息\", \"content\": [{\"label\": \"任务名称\", \"value\": \"${taskDetail?.getString("Title")}\"}, {\"label\": \"发布机构\", \"value\": \"${taskDetail?.getString("PubOrgName")}\"}, {\"label\": \"发布人\", \"value\": \"${taskDetail?.getString("PubPersonName")}\"}]}"
-                                                                            val wfid = taskDetail?.getString("WFId")
-                                                                            val remoteInput = RemoteInput.Builder("KEY_TEMPERATURE").run {
-                                                                                setLabel(context.getString(R.string.submit_temperature))
-                                                                                build()
-                                                                            }
-                                                                            val extras2BSent = Bundle().apply {
-                                                                                putStringArray("location", savedLocation)
-                                                                                putString("ex", ex)
-                                                                                putString("wfid", wfid)
-                                                                                putString("title", context.getString(R.string.task_notification_title, taskTitle))
-                                                                            }
-                                                                            addAction(NotificationCompat.Action.Builder(null, context.getString(R.string.task_notification_action_submit),
-                                                                                PendingIntent.getService(
-                                                                                    context,
-                                                                                    2,
-                                                                                    Intent(context, TaskCheckAffiliatedService::class.java).putExtra("request", TaskCheckAffiliatedService.REQUEST_SUBMIT).putExtras(extras2BSent),
-                                                                                    PendingIntent.FLAG_CANCEL_CURRENT)).addRemoteInput(remoteInput).build())
+                                                            val extras2BSent = Bundle()
+                                                            val remoteInput = RemoteInput.Builder("KEY_TEMPERATURE").run {
+                                                                setLabel(context.getString(R.string.submit_temperature))
+                                                                build()
+                                                            }
+                                                            YibanUtils.getTaskDetail(taskId, object: NetworkTaskListener {
+                                                                override fun onTaskStart() {}
+                                                                override fun onTaskFinished(jsonObject: JSONObject?) {
+                                                                    // construct direct reply action
+                                                                    val taskDetail = jsonObject?.optJSONObject("data")
+                                                                    val ex = "{\"TaskId\": \"${taskDetail?.getString("Id")}\", \"title\": \"任务信息\", \"content\": [{\"label\": \"任务名称\", \"value\": \"${taskDetail?.getString("Title")}\"}, {\"label\": \"发布机构\", \"value\": \"${taskDetail?.getString("PubOrgName")}\"}, {\"label\": \"发布人\", \"value\": \"${taskDetail?.getString("PubPersonName")}\"}]}"
+                                                                    val wfid = taskDetail?.getString("WFId")
+                                                                    extras2BSent.apply {
+                                                                        putStringArray("location", savedLocation)
+                                                                        putString("ex", ex)
+                                                                        putString("wfid", wfid)
+                                                                        putString("title", context.getString(R.string.task_notification_title, taskTitle))
+                                                                    }
+
+                                                                    // construct notification
+                                                                    val taskNotification = NotificationCompat.Builder(context, "TASK").apply {
+                                                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                                                                            setStyle(NotificationCompat.BigTextStyle().bigText(context.getString(R.string.task_notification_message_nougat, displayLocation)))
+                                                                        } else {
+                                                                            setContentText(context.getString(R.string.task_notification_message))
                                                                         }
-                                                                    })
+                                                                        setSmallIcon(R.drawable.ic_baseline_playlist_add_check_24)
+                                                                        setContentTitle(context.getString(R.string.task_notification_title, taskTitle))
+                                                                        setContentIntent(PendingIntent.getActivity(context, 0, Intent(context, TasksActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK }, PendingIntent.FLAG_CANCEL_CURRENT))
+                                                                        setCategory(NotificationCompat.CATEGORY_REMINDER)
+                                                                        setAutoCancel(true)
+                                                                        // add direct reply action
+                                                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                                                                            addAction(NotificationCompat.Action.Builder(null, context.getString(R.string.task_notification_action_submit),
+                                                                                PendingIntent.getBroadcast(
+                                                                                    context,
+                                                                                    1,
+                                                                                    Intent(context, TaskCheckAffiliatedReceiver::class.java).apply { action = "net.rachel030219.yibansubmission.SUBMIT" ; putExtras(extras2BSent) },
+                                                                                    PendingIntent.FLAG_CANCEL_CURRENT)).addRemoteInput(remoteInput).build())
+                                                                        addAction(NotificationCompat.Action.Builder(null, context.getString(R.string.task_notification_action_delay),
+                                                                            PendingIntent.getBroadcast(
+                                                                                context,
+                                                                                2,
+                                                                                Intent(context, TaskCheckAffiliatedReceiver::class.java).apply { action = "net.rachel030219.yibansubmission.DELAY" },
+                                                                                PendingIntent.FLAG_CANCEL_CURRENT)).build())
+                                                                        }
+                                                                    }.build()
+                                                                    NotificationManagerCompat.from(context).notify(233, taskNotification)
                                                                 }
-                                                            }.build()
-                                                            NotificationManagerCompat.from(context).notify(233, taskNotification)
+                                                            })
                                                         }
                                                     }
                                                 } else {

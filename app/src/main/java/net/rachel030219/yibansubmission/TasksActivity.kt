@@ -64,6 +64,10 @@ class TasksActivity: AppCompatActivity() {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(targetURL)))
                 true
             }
+            R.id.tasks_menu_settings -> {
+                startActivity(Intent(this, TaskPreferenceActivity::class.java))
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -135,7 +139,7 @@ class TasksActivity: AppCompatActivity() {
             }
         })
     }
-    
+
     private fun showResult (success: Boolean, message: String, targetHolder: Holder) {
         CoroutineScope(Dispatchers.Main).launch {
             if (success)
@@ -198,8 +202,13 @@ class TasksActivity: AppCompatActivity() {
                                                 val provinceFromPrefs = locationPreferences.getString("province", null)
                                                 val cityFromPrefs = locationPreferences.getString("city", null)
                                                 val countyFromPrefs = locationPreferences.getString("county", null)
+                                                if (!provinceFromPrefs.isNullOrBlank())
+                                                    holder.itemSubmitLocationProvince.apply { text = null ; append(provinceFromPrefs) }
+                                                if (!cityFromPrefs.isNullOrBlank())
+                                                    holder.itemSubmitLocationCity.apply { text = null ; append(cityFromPrefs) }
+                                                if (!countyFromPrefs.isNullOrBlank())
+                                                    holder.itemSubmitLocationCounty.apply { text = null ; append(countyFromPrefs) }
 
-                                                if (!locationPreferences.getString("province", null).isNullOrBlank())
                                                 holder.itemProgress.visibility = View.GONE
                                                 holder.itemSubmitLayout.visibility = View.VISIBLE
                                                 holder.itemSubmitButton.setOnClickListener {

@@ -24,6 +24,7 @@
     <string name="task_done">完成！已复制打卡结果链接。</string>
     <string name="task_menu_switch">展示已完成/未完成</string>
     <string name="task_menu_info">信息与常见问题</string>
+    <string name="task_menu_settings">设置</string>
     <string name="task_notification_channel">任务监测</string>
     <string name="task_notification_title">新任务： %s</string>
     <string name="task_notification_message">点击以在应用中查看</string>
@@ -31,4 +32,11 @@
     <string name="task_notification_action_submit">提交数据</string>
     <string name="task_notification_action_delay">稍后询问</string>
     <string name="task_notification_submitting">提交中…</string>
+
+    <string name="preference_scheduled">定时检查新打卡任务</string>
+    <string name="preference_scheduled_hour">设置定时检查时间</string>
+    <string name="preference_scheduled_hour_message">从 0 到 23 的整点，默认为 10.</string>
+    <string name="preference_scheduled_added">任务已设定在 %s 点.</string>
+    <string name="preference_scheduled_cancelled">%s 点的任务已移除.</string>
+    <string name="preference_check_update">检查更新</string>
 </resources>

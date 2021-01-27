@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreferenceCompat
+        app:key="task_check"
+        app:title="@string/preference_scheduled"
+        app:defaultValue="false"
+        app:iconSpaceReserved="false"/>
+
+    <EditTextPreference
+        app:key="task_check_time"
+        app:title="@string/preference_scheduled_hour"
+        app:summary="@string/preference_scheduled_hour_message"
+        app:iconSpaceReserved="false"
+        app:defaultValue="10"
+        app:dependency="task_check"/>
+
+    <Preference
+        app:key="task_update"
+        app:title="@string/preference_check_update"
+        app:iconSpaceReserved="false"
+        app:enabled="false"/>
+
+</PreferenceScreen>

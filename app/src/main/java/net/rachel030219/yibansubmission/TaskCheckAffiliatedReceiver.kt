@@ -1,28 +1,31 @@
 package net.rachel030219.yibansubmission
 
 import android.app.PendingIntent
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.content.Intent
-import androidx.core.app.JobIntentService
+import android.content.*
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.RemoteInput
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 
-class TaskCheckAffiliatedService: JobIntentService() {
-    companion object {
-        const val REQUEST_DELAY = 1
-        const val REQUEST_SUBMIT = 2
-    }
-    override fun onHandleWork(intent: Intent) {
-        if (intent.hasExtra("request")) {
-            when (intent.getIntExtra("request", 0)) {
-                REQUEST_DELAY -> {
-                    // TODO: 这里三十分钟后启动一次性的 Worker / 设置页，计算起始时间，用户输入 0~23 点 / 设置页，通过 DNS 检查更新
+class TaskCheckAffiliatedReceiver: BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+        Log.d("TAG", "onReceive:called ")
+        if (context != null && intent != null) {
+            when (intent.action) {
+                "net.rachel030219.yibansubmission.DELAY" -> {
+                    val delayedRequest = OneTimeWorkRequestBuilder<TaskCheckWorker>().apply {
+                        setInitialDelay(30, TimeUnit.MINUTES)
+                        addTag("TASK")
+                    }.build()
+                    WorkManager.getInstance(context).enqueueUniqueWork("TASK_DELAYED", ExistingWorkPolicy.REPLACE, delayedRequest)
+                    NotificationManagerCompat.from(context).cancel(233)
                 }
-                REQUEST_SUBMIT -> {
+                "net.rachel030219.yibansubmission.SUBMIT" -> {
                     val locationArray = intent.getStringArrayExtra("location")
                     val temperature = RemoteInput.getResultsFromIntent(intent)?.getCharSequence("KEY_TEMPERATURE")?.toString()?.toFloatOrNull()
                     val ex = intent.getStringExtra("ex")
@@ -35,12 +38,12 @@ class TaskCheckAffiliatedService: JobIntentService() {
                         val county = locationArray[2]
                         val data = "{\"b418fa886b6a38bdce72569a70b1fa10\":\"${temperature}\",\"c77d35b16fb22ec70a1f33c315141dbb\":\"${TimeUtils.getTimeNoSecond()}\",\"2fca911d0600717cc5c2f57fc3702787\":[\"$province\",\"$city\",\"$county\"]}"
                         YibanUtils.submit(data, ex, wfid, object: NetworkTaskListener{
-                            val notificationManager = NotificationManagerCompat.from(this@TaskCheckAffiliatedService)
+                            val notificationManager = NotificationManagerCompat.from(context)
                             override fun onTaskStart() {
-                                val submittingNotification = NotificationCompat.Builder(this@TaskCheckAffiliatedService, "TASK").apply {
-                                    setSmallIcon(R.drawable.ic_launcher_foreground)
+                                val submittingNotification = NotificationCompat.Builder(context, "TASK").apply {
+                                    setSmallIcon(R.drawable.ic_baseline_playlist_add_check_24)
                                     setContentTitle(title)
-                                    setContentText(getString(R.string.task_notification_submitting))
+                                    setContentText(context.getString(R.string.task_notification_submitting))
                                     setOngoing(true)
                                 }.build()
                                 notificationManager.notify(233, submittingNotification)
@@ -53,31 +56,30 @@ class TaskCheckAffiliatedService: JobIntentService() {
                                         override fun onTaskFinished(jsonObject: JSONObject?) {
                                             // copy url to clipboard
                                             val shareURL = jsonObject?.getJSONObject("data")?.getString("uri")
-                                            (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(
+                                            (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(
                                                 ClipData.newPlainText("share URL", shareURL))
 
-                                            val submittedNotification = NotificationCompat.Builder(this@TaskCheckAffiliatedService, "TASK").apply {
-                                                setSmallIcon(R.drawable.ic_launcher_foreground)
+                                            val submittedNotification = NotificationCompat.Builder(context, "TASK").apply {
+                                                setSmallIcon(R.drawable.ic_baseline_playlist_add_check_24)
                                                 setContentTitle(title)
-                                                setContentText(getString(R.string.task_done))
-                                                setContentIntent(PendingIntent.getActivity(this@TaskCheckAffiliatedService, 0, Intent(this@TaskCheckAffiliatedService, TasksActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK }, PendingIntent.FLAG_CANCEL_CURRENT))
+                                                setContentText(context.getString(R.string.task_done))
+                                                setContentIntent(PendingIntent.getActivity(context, 0, Intent(context, TasksActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK }, PendingIntent.FLAG_CANCEL_CURRENT))
                                                 setAutoCancel(true)
                                             }.build()
                                             notificationManager.notify(233, submittedNotification)
                                         }
                                     })
                                 } else {
-                                    val submitErrorNotification = NotificationCompat.Builder(this@TaskCheckAffiliatedService, "TASK").apply {
-                                        setSmallIcon(R.drawable.ic_launcher_foreground)
-                                        setContentTitle(getString(R.string.task_done))
-                                        setContentText(jsonObject?.getString("msg")?: resources.getString(R.string.unexpected_error))
-                                        setContentIntent(PendingIntent.getActivity(this@TaskCheckAffiliatedService, 0, Intent(this@TaskCheckAffiliatedService, TasksActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK }, PendingIntent.FLAG_CANCEL_CURRENT))
+                                    val submitErrorNotification = NotificationCompat.Builder(context, "TASK").apply {
+                                        setSmallIcon(R.drawable.ic_baseline_playlist_add_check_24)
+                                        setContentTitle(context.getString(R.string.task_done))
+                                        setContentText(jsonObject?.getString("msg")?: context.getString(R.string.unexpected_error))
+                                        setContentIntent(PendingIntent.getActivity(context, 0, Intent(context, TasksActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK }, PendingIntent.FLAG_CANCEL_CURRENT))
                                         setAutoCancel(true)
                                     }.build()
                                     notificationManager.notify(233, submitErrorNotification)
                                 }
                             }
-
                         })
                     }
                 }
