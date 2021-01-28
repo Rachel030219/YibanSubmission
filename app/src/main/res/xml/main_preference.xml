@@ -15,10 +15,4 @@
         app:defaultValue="10"
         app:dependency="task_check"/>
 
-    <Preference
-        app:key="task_update"
-        app:title="@string/preference_check_update"
-        app:iconSpaceReserved="false"
-        app:enabled="false"/>
-
 </PreferenceScreen>
