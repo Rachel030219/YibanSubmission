@@ -32,6 +32,7 @@
     <string name="task_notification_action_submit">提交数据</string>
     <string name="task_notification_action_delay">稍后询问</string>
     <string name="task_notification_submitting">提交中…</string>
+    <string name="task_notification_error">遇到了一点麻烦，将在半小时后重试。</string>
 
     <string name="preference_scheduled">定时检查新打卡任务</string>
     <string name="preference_scheduled_hour">设置定时检查时间</string>

@@ -12,12 +12,13 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.RemoteInput
 import androidx.core.content.edit
 import androidx.preference.PreferenceManager
-import androidx.work.CoroutineWorker
-import androidx.work.WorkerParameters
+import androidx.work.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.joda.time.DateTime
+import org.joda.time.Duration
 import org.json.JSONObject
-import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 class TaskCheckWorker (private val context: Context, params: WorkerParameters): CoroutineWorker (context, params) {
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
@@ -120,7 +121,7 @@ class TaskCheckWorker (private val context: Context, params: WorkerParameters): 
                                                     }
                                                 } else {
                                                     val noTaskNotification = NotificationCompat.Builder(context, "TASK").apply {
-                                                        setSmallIcon(R.drawable.ic_launcher_foreground)
+                                                        setSmallIcon(R.drawable.ic_baseline_playlist_add_check_24)
                                                         setContentTitle(context.getString(R.string.no_uncompleted_tasks))
                                                         setContentText(context.getString(R.string.task_notification_message))
                                                         setContentIntent(PendingIntent.getActivity(context, 0, Intent(context, TasksActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK }, PendingIntent.FLAG_CANCEL_CURRENT))
@@ -136,10 +137,30 @@ class TaskCheckWorker (private val context: Context, params: WorkerParameters): 
                         }
                     })
                 } else {
-                    throw IOException("error logging in")
+                    val errorNotification = NotificationCompat.Builder(context, "TASK").apply {
+                        setSmallIcon(R.drawable.ic_baseline_playlist_add_check_24)
+                        setContentTitle(context.getString(R.string.task_notification_error))
+                        setContentText(context.getString(R.string.task_notification_message))
+                        setContentIntent(PendingIntent.getActivity(context, 0, Intent(context, TasksActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK }, PendingIntent.FLAG_CANCEL_CURRENT))
+                        setAutoCancel(true)
+                    }.build()
+                    NotificationManagerCompat.from(context).notify(233, errorNotification)
+                    scheduleTask(context, 30)
                 }
             }
         })
+        scheduleTask(context)
         Result.success()
+    }
+
+    private fun scheduleTask (context: Context, delayMinutes: Long? = null) {
+        val hour = PreferenceManager.getDefaultSharedPreferences(context).getString("task_check_time", "10").toString().toIntOrNull() ?: 10
+        val finalHour = if (hour > 23) 23 else if (hour < 0) 0 else hour
+        val delay = delayMinutes ?: Duration(DateTime.now(), DateTime.now().withTimeAtStartOfDay().plusDays(1).plusHours(finalHour)).standardMinutes
+        val recursiveRequest = OneTimeWorkRequestBuilder<TaskCheckWorker>().apply {
+            setInitialDelay(delay, TimeUnit.MINUTES)
+            addTag("TASK")
+        }.build()
+        WorkManager.getInstance(context).enqueueUniqueWork("TASK", ExistingWorkPolicy.REPLACE, recursiveRequest)
     }
 }

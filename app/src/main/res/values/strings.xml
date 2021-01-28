@@ -31,6 +31,7 @@
     <string name="task_notification_action_submit">Submit</string>
     <string name="task_notification_action_delay">Ask me later</string>
     <string name="task_notification_submitting">Submitting…</string>
+    <string name="task_notification_error">An error occurred. Will retry in 30 minutes.</string>
 
     <string name="preference_scheduled">Check for new tasks daily</string>
     <string name="preference_scheduled_hour">Set hour of scheduled check</string>

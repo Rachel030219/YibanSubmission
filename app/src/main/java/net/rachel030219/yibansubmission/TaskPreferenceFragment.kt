@@ -6,9 +6,8 @@ import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import androidx.preference.SwitchPreferenceCompat
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequest
-import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import org.joda.time.DateTime
 import org.joda.time.Duration
@@ -36,21 +35,23 @@ class TaskPreferenceFragment: PreferenceFragmentCompat() {
     }
 
     private fun scheduleTask (hour: Int) {
-        val delay = if (DateTime.now().hourOfDay < hour) {
-            Duration(DateTime.now(), DateTime.now().withTimeAtStartOfDay().plusHours(hour)).standardMinutes
+        val finalHour = if (hour > 23) 23 else if (hour < 0) 0 else hour
+        val delay = if (DateTime.now().hourOfDay < finalHour) {
+            Duration(DateTime.now(), DateTime.now().withTimeAtStartOfDay().plusHours(finalHour)).standardMinutes
         } else {
-            Duration(DateTime.now(), DateTime.now().withTimeAtStartOfDay().plusDays(1).plusHours(hour)).standardMinutes
+            Duration(DateTime.now(), DateTime.now().withTimeAtStartOfDay().plusDays(1).plusHours(finalHour)).standardMinutes
         }
-        val periodicWorkRequest = PeriodicWorkRequestBuilder<TaskCheckWorker>(24, TimeUnit.HOURS, PeriodicWorkRequest.MIN_PERIODIC_FLEX_MILLIS, TimeUnit.MILLISECONDS).apply {
+        val recursiveWorkRequest = OneTimeWorkRequestBuilder<TaskCheckWorker>().apply {
             setInitialDelay(delay, TimeUnit.MINUTES)
             addTag("TASK")
         }.build()
-        WorkManager.getInstance(requireContext()).enqueueUniquePeriodicWork("TASK", ExistingPeriodicWorkPolicy.REPLACE, periodicWorkRequest)
-        Toast.makeText(requireActivity(), getString(R.string.preference_scheduled_added, hour.toString()), Toast.LENGTH_SHORT).show()
+        WorkManager.getInstance(requireContext()).enqueueUniqueWork("TASK", ExistingWorkPolicy.REPLACE, recursiveWorkRequest)
+        Toast.makeText(requireActivity(), getString(R.string.preference_scheduled_added, finalHour.toString()), Toast.LENGTH_SHORT).show()
     }
 
     private fun cancelTask (hour: Int) {
+        val finalHour = if (hour > 23) 23 else if (hour < 0) 0 else hour
         WorkManager.getInstance(requireContext()).cancelUniqueWork("TASK")
-        Toast.makeText(requireActivity(), getString(R.string.preference_scheduled_cancelled, hour.toString()), Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireActivity(), getString(R.string.preference_scheduled_cancelled, finalHour.toString()), Toast.LENGTH_SHORT).show()
     }
 }
