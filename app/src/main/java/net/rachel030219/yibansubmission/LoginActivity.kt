@@ -15,7 +15,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.json.JSONObject
+import kotlinx.coroutines.withContext
 import kotlin.math.hypot
 
 class LoginActivity: AppCompatActivity() {
@@ -56,44 +56,40 @@ class LoginActivity: AppCompatActivity() {
 
             // process logging in
             YibanUtils.initialize(mobile, password)
-            YibanUtils.login(object: NetworkTaskListener {
-                override fun onTaskStart() {}
-                override fun onTaskFinished(jsonObject: JSONObject?) {
-                    CoroutineScope(Dispatchers.Main).launch {
-                        if (jsonObject == null) {
-                            login_progress_text.text = resources.getString(R.string.unexpected_error)
+            CoroutineScope(Dispatchers.Main).launch {
+                val loginResult = withContext(Dispatchers.Main) { YibanUtils.login() }
+                if (loginResult == null) {
+                    login_progress_text.text = resources.getString(R.string.unexpected_error)
+                } else {
+                    login_progress_text.text = loginResult.getString("message")
+                    login_progress.visibility = View.INVISIBLE
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        if (loginResult.getInt("response") == 100) {
+                            startActivity(Intent(this@LoginActivity, TasksActivity::class.java))
+                            // store account and password
+                            if (preferences.getString("mobile", null) != mobile) {
+                                preferences.edit().putString("mobile", mobile).apply()
+                            }
+                            if (preferences.getString("password", null) != password) {
+                                preferences.edit().putString("password", password).apply()
+                            }
+                            finish()
                         } else {
-                            login_progress_text.text = jsonObject.getString("message")
-                            login_progress.visibility = View.INVISIBLE
-                            Handler(Looper.getMainLooper()).postDelayed({
-                                if (jsonObject.getInt("response") == 100) {
-                                    startActivity(Intent(this@LoginActivity, TasksActivity::class.java))
-                                    // store account and password
-                                    if (preferences.getString("mobile", null) != mobile) {
-                                        preferences.edit().putString("mobile", mobile).apply()
-                                    }
-                                    if (preferences.getString("password", null) != password) {
-                                        preferences.edit().putString("password", password).apply()
-                                    }
-                                    finish()
-                                } else {
-                                    val endAnimX = login_progress_layout.width / 2
-                                    val endAnimY = login_progress_layout.height / 2
-                                    val endInitialRadius = hypot(endAnimX.toDouble(), endAnimY.toDouble()).toFloat()
-                                    val endAnim = ViewAnimationUtils.createCircularReveal(login_progress_layout, endAnimX, endAnimY, endInitialRadius, 0f)
-                                    endAnim.doOnStart {
-                                        login_form_layout.visibility = View.VISIBLE
-                                    }
-                                    endAnim.doOnEnd {
-                                        login_progress_layout.visibility = View.GONE
-                                    }
-                                    endAnim.start()
-                                }
-                            }, 1000)
+                            val endAnimX = login_progress_layout.width / 2
+                            val endAnimY = login_progress_layout.height / 2
+                            val endInitialRadius = hypot(endAnimX.toDouble(), endAnimY.toDouble()).toFloat()
+                            val endAnim = ViewAnimationUtils.createCircularReveal(login_progress_layout, endAnimX, endAnimY, endInitialRadius, 0f)
+                            endAnim.doOnStart {
+                                login_form_layout.visibility = View.VISIBLE
+                            }
+                            endAnim.doOnEnd {
+                                login_progress_layout.visibility = View.GONE
+                            }
+                            endAnim.start()
                         }
-                    }
+                    }, 1000)
                 }
-            })
+            }
         }
 
         // respond to enter

@@ -9,7 +9,9 @@ import androidx.core.app.RemoteInput
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import org.json.JSONObject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 class TaskCheckAffiliatedReceiver: BroadcastReceiver() {
@@ -36,51 +38,45 @@ class TaskCheckAffiliatedReceiver: BroadcastReceiver() {
                         val province = locationArray[0]
                         val city = locationArray[1]
                         val county = locationArray[2]
-                        val data = "{\"b418fa886b6a38bdce72569a70b1fa10\":\"${temperature}\",\"c77d35b16fb22ec70a1f33c315141dbb\":\"${TimeUtils.getTimeNoSecond()}\",\"2fca911d0600717cc5c2f57fc3702787\":[\"$province\",\"$city\",\"$county\"]}"
-                        YibanUtils.submit(data, ex, wfid, object: NetworkTaskListener{
+                        val data = "{\"2d4135d558f849e18a5dcc87b884cce5\":\"${temperature}\",\"c77d35b16fb22ec70a1f33c315141dbb\":\"${TimeUtils.getTimeNoSecond()}\",\"2fca911d0600717cc5c2f57fc3702787\":[\"$province\",\"$city\",\"$county\"]}"
+                        CoroutineScope(Dispatchers.IO).launch {
                             val notificationManager = NotificationManagerCompat.from(context)
-                            override fun onTaskStart() {
-                                val submittingNotification = NotificationCompat.Builder(context, "TASK").apply {
-                                    setSmallIcon(R.drawable.ic_baseline_playlist_add_check_24)
-                                    setContentTitle(title)
-                                    setContentText(context.getString(R.string.task_notification_submitting))
-                                    setOngoing(true)
-                                }.build()
-                                notificationManager.notify(233, submittingNotification)
-                            }
+                            val submittingNotification = NotificationCompat.Builder(context, "TASK").apply {
+                                setSmallIcon(R.drawable.ic_baseline_playlist_add_check_24)
+                                setContentTitle(title)
+                                setContentText(context.getString(R.string.task_notification_submitting))
+                                setOngoing(true)
+                            }.build()
+                            notificationManager.notify(233, submittingNotification)
+                            YibanUtils.submit(data, ex, wfid).also { submitResult ->
+                                if (submitResult?.getInt("code") == 0) {
+                                    YibanUtils.getShareUrl(submitResult.getString("data")).also { shareResult ->
+                                        // copy url to clipboard
+                                        val shareURL = shareResult?.getJSONObject("data")?.getString("uri")
+                                        (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(
+                                            ClipData.newPlainText("share URL", shareURL))
 
-                            override fun onTaskFinished(jsonObject: JSONObject?) {
-                                if (jsonObject?.getInt("code") == 0) {
-                                    YibanUtils.getShareUrl(jsonObject.getString("data"), object: NetworkTaskListener{
-                                        override fun onTaskStart() {}
-                                        override fun onTaskFinished(jsonObject: JSONObject?) {
-                                            // copy url to clipboard
-                                            val shareURL = jsonObject?.getJSONObject("data")?.getString("uri")
-                                            (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(
-                                                ClipData.newPlainText("share URL", shareURL))
-
-                                            val submittedNotification = NotificationCompat.Builder(context, "TASK").apply {
-                                                setSmallIcon(R.drawable.ic_baseline_playlist_add_check_24)
-                                                setContentTitle(title)
-                                                setContentText(context.getString(R.string.task_done))
-                                                setContentIntent(PendingIntent.getActivity(context, 0, Intent(context, TasksActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK }, PendingIntent.FLAG_CANCEL_CURRENT))
-                                                setAutoCancel(true)
-                                            }.build()
-                                            notificationManager.notify(233, submittedNotification)
-                                        }
-                                    })
+                                        val submittedNotification = NotificationCompat.Builder(context, "TASK").apply {
+                                            setSmallIcon(R.drawable.ic_baseline_playlist_add_check_24)
+                                            setContentTitle(title)
+                                            setContentText(context.getString(R.string.task_done))
+                                            setContentIntent(PendingIntent.getActivity(context, 0, Intent(context, TasksActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK }, PendingIntent.FLAG_CANCEL_CURRENT))
+                                            setAutoCancel(true)
+                                        }.build()
+                                        notificationManager.notify(233, submittedNotification)
+                                    }
                                 } else {
                                     val submitErrorNotification = NotificationCompat.Builder(context, "TASK").apply {
                                         setSmallIcon(R.drawable.ic_baseline_playlist_add_check_24)
-                                        setContentTitle(context.getString(R.string.task_done))
-                                        setContentText(jsonObject?.getString("msg")?: context.getString(R.string.unexpected_error))
+                                        setContentTitle(title)
+                                        setContentText(submitResult?.getString("msg")?: context.getString(R.string.unexpected_error))
                                         setContentIntent(PendingIntent.getActivity(context, 0, Intent(context, TasksActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK }, PendingIntent.FLAG_CANCEL_CURRENT))
                                         setAutoCancel(true)
                                     }.build()
                                     notificationManager.notify(233, submitErrorNotification)
                                 }
                             }
-                        })
+                        }
                     }
                 }
             }

@@ -6,6 +6,7 @@ import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import androidx.preference.SwitchPreferenceCompat
+import androidx.work.BackoffPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -43,10 +44,11 @@ class TaskPreferenceFragment: PreferenceFragmentCompat() {
         }
         val recursiveWorkRequest = OneTimeWorkRequestBuilder<TaskCheckWorker>().apply {
             setInitialDelay(delay, TimeUnit.MINUTES)
+            setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.MINUTES)
             addTag("TASK")
         }.build()
         WorkManager.getInstance(requireContext()).enqueueUniqueWork("TASK", ExistingWorkPolicy.REPLACE, recursiveWorkRequest)
-        Toast.makeText(requireActivity(), getString(R.string.preference_scheduled_added, finalHour.toString()), Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireActivity(), getString(R.string.preference_scheduled_added, delay.toString()), Toast.LENGTH_SHORT).show()
     }
 
     private fun cancelTask (hour: Int) {

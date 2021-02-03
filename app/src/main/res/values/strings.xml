@@ -31,12 +31,12 @@
     <string name="task_notification_action_submit">Submit</string>
     <string name="task_notification_action_delay">Ask me later</string>
     <string name="task_notification_submitting">Submitting…</string>
-    <string name="task_notification_error">An error occurred. Will retry in 30 minutes.</string>
+    <string name="task_notification_error">An error occurred. Will retry later.</string>
 
     <string name="preference_scheduled">Check for new tasks daily</string>
     <string name="preference_scheduled_hour">Set hour of scheduled check</string>
     <string name="preference_scheduled_hour_message">An integral point from 0 to 23, 10 by default.</string>
-    <string name="preference_scheduled_added">Task is scheduled at %s o\'clock.</string>
+    <string name="preference_scheduled_added">Task is to be done in %s minutes.</string>
     <string name="preference_scheduled_cancelled">Task scheduled at %s o\'clock is removed.</string>
     <string name="preference_check_update">Check for update</string>
 </resources>

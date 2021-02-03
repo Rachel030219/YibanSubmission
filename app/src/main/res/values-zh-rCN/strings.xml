@@ -32,12 +32,12 @@
     <string name="task_notification_action_submit">提交数据</string>
     <string name="task_notification_action_delay">稍后询问</string>
     <string name="task_notification_submitting">提交中…</string>
-    <string name="task_notification_error">遇到了一点麻烦，将在半小时后重试。</string>
+    <string name="task_notification_error">遇到了一点麻烦，稍后将重试。</string>
 
     <string name="preference_scheduled">定时检查新打卡任务</string>
     <string name="preference_scheduled_hour">设置定时检查时间</string>
     <string name="preference_scheduled_hour_message">从 0 到 23 的整点，默认为 10.</string>
-    <string name="preference_scheduled_added">任务已设定在 %s 点.</string>
+    <string name="preference_scheduled_added">任务已设定在 %s 分钟后.</string>
     <string name="preference_scheduled_cancelled">%s 点的任务已移除.</string>
     <string name="preference_check_update">检查更新</string>
 </resources>

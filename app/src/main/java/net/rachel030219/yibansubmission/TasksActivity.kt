@@ -21,9 +21,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.android.synthetic.main.activity_tasks.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.util.*
 
@@ -78,66 +76,57 @@ class TasksActivity: AppCompatActivity() {
         tasks_hint.visibility = View.GONE
         tasks_progress_text.text = resources.getString(R.string.loading)
         tasks_progress_layout.visibility = View.VISIBLE
-        YibanUtils.getHome(object: NetworkTaskListener{
-            override fun onTaskStart() {}
-            override fun onTaskFinished(jsonObject: JSONObject?) {
-                YibanUtils.auth(object: NetworkTaskListener{
-                    override fun onTaskStart() {}
-                    override fun onTaskFinished(jsonObject: JSONObject?) {
-                        if (jsonObject?.optBoolean("error") == true) {
-                            CoroutineScope(Dispatchers.Main).launch {
-                                tasks_hint.text = jsonObject.optString("msg")?: resources.getString(R.string.unexpected_error)
-                                tasks_hint.visibility = View.VISIBLE
-                            }
-                        } else {
-                            val tasksFetchListener = object : NetworkTaskListener {
-                                override fun onTaskStart() {
-                                }
-
-                                override fun onTaskFinished(jsonObject: JSONObject?) {
-                                    CoroutineScope(Dispatchers.Main).launch {
-                                        tasks_progress_layout.visibility = View.INVISIBLE
-                                        jsonObject?.optJSONArray("data")?.also {
-                                            mData.clear()
-                                            if (it.length() > 0)
-                                                for (i in 0 until it.length()) {
-                                                    val uncompletedTask = it.getJSONObject(i)
-                                                    if (uncompletedTask.getString("Title").contains("体温检测"))
-                                                        mData.add(Task(uncompletedTask.getString("Title"), uncompletedTask.getInt("StartTime").formatToDate(), uncompletedTask.getInt("EndTime").formatToDate(), uncompletedTask))
-                                                }
-                                        }
-                                        if (mData.isNotEmpty()) {
-                                            // update RecyclerView
-                                            recyclerAdapter?.notifyDataSetChanged()
-                                            tasks_recycler.visibility = View.VISIBLE
-                                        } else {
-                                            // set hint text
-                                            if (jsonObject?.optBoolean("error", false) == true)
-                                                tasks_hint.text = jsonObject.optString("content")
-                                            else if (jsonObject?.optInt("code") != 0)
-                                                tasks_hint.text = jsonObject?.optString("msg")
-                                                    ?: resources.getString(R.string.unexpected_error)
-                                            else
-                                                tasks_hint.text = if (showingUncompleted) resources.getString(R.string.no_uncompleted_tasks) else resources.getString(R.string.no_completed_tasks)
-                                            tasks_hint.visibility = View.VISIBLE
-                                        }
-                                    }
-                                }
-                            }
-                            CoroutineScope(Dispatchers.Main).launch {
-                                title = if (showingUncompleted) {
-                                    YibanUtils.getUncompletedList(tasksFetchListener)
-                                    resources.getString(R.string.uncompleted_label, YibanUtils.name)
-                                } else {
-                                    YibanUtils.getCompletedList(tasksFetchListener)
-                                    resources.getString(R.string.completed_label, YibanUtils.name)
-                                }
-                            }
-                        }
+        GlobalScope.launch {
+            YibanUtils.getHome()
+            val authResult = YibanUtils.auth()
+            if (authResult?.optBoolean("error") != true) {
+                withContext(Dispatchers.Main) {
+                    title = if (showingUncompleted) {
+                        processResult(YibanUtils.getUncompletedList())
+                        resources.getString(R.string.uncompleted_label, YibanUtils.name)
+                    } else {
+                        processResult(YibanUtils.getCompletedList())
+                        resources.getString(R.string.completed_label, YibanUtils.name)
                     }
-                })
+                }
+            } else {
+                withContext(Dispatchers.Main) {
+                    tasks_progress_layout.visibility = View.INVISIBLE
+                    tasks_hint.text = authResult.optString("msg")?: resources.getString(R.string.unexpected_error)
+                    tasks_hint.visibility = View.VISIBLE
+                }
             }
-        })
+        }
+    }
+
+    private fun processResult (jsonObject: JSONObject?) {
+        CoroutineScope(Dispatchers.Main).launch {
+            tasks_progress_layout.visibility = View.INVISIBLE
+            jsonObject?.optJSONArray("data")?.also {
+                mData.clear()
+                if (it.length() > 0)
+                    for (i in 0 until it.length()) {
+                        val taskItem = it.getJSONObject(i)
+                        if (taskItem.getString("Title").contains("体温检测"))
+                            mData.add(Task(taskItem.getString("Title"), taskItem.getInt("StartTime").formatToDate(), taskItem.getInt("EndTime").formatToDate(), taskItem))
+                    }
+            }
+            if (mData.isNotEmpty()) {
+                // update RecyclerView
+                recyclerAdapter?.notifyDataSetChanged()
+                tasks_recycler.visibility = View.VISIBLE
+            } else {
+                // set hint text
+                if (jsonObject?.optBoolean("error", false) == true)
+                    tasks_hint.text = jsonObject.optString("content")
+                else if (jsonObject?.optInt("code") != 0)
+                    tasks_hint.text = jsonObject?.optString("msg")
+                            ?: resources.getString(R.string.unexpected_error)
+                else
+                    tasks_hint.text = if (showingUncompleted) resources.getString(R.string.no_uncompleted_tasks) else resources.getString(R.string.no_completed_tasks)
+                tasks_hint.visibility = View.VISIBLE
+            }
+        }
     }
 
     private fun showResult (success: Boolean, message: String, targetHolder: Holder) {
@@ -189,92 +178,84 @@ class TasksActivity: AppCompatActivity() {
                             } else {
                                 holder.itemProgress.visibility = View.GONE
                                 mData[position].rawJSONData?.optString("TaskId")?.let { taskID ->
-                                    YibanUtils.getTaskDetail(taskID, object : NetworkTaskListener {
-                                        override fun onTaskStart() {}
-                                        override fun onTaskFinished(jsonObject: JSONObject?) {
-                                            // initialize extra data
-                                            val taskDetail = jsonObject?.getJSONObject("data")
-                                            val ex = "{\"TaskId\": \"${taskDetail?.getString("Id")}\", \"title\": \"任务信息\", \"content\": [{\"label\": \"任务名称\", \"value\": \"${taskDetail?.getString("Title")}\"}, {\"label\": \"发布机构\", \"value\": \"${taskDetail?.getString("PubOrgName")}\"}, {\"label\": \"发布人\", \"value\": \"${taskDetail?.getString("PubPersonName")}\"}]}"
+                                    GlobalScope.launch {
+                                        val jsonDetailResult = YibanUtils.getTaskDetail(taskID)
+                                        // initialize extra data
+                                        val taskDetail = jsonDetailResult?.getJSONObject("data")
+                                        val ex = "{\"TaskId\": \"${taskDetail?.getString("Id")}\", \"title\": \"任务信息\", \"content\": [{\"label\": \"任务名称\", \"value\": \"${taskDetail?.getString("Title")}\"}, {\"label\": \"发布机构\", \"value\": \"${taskDetail?.getString("PubOrgName")}\"}, {\"label\": \"发布人\", \"value\": \"${taskDetail?.getString("PubPersonName")}\"}]}"
 
-                                            CoroutineScope(Dispatchers.Main).launch {
-                                                // auto fill in location
-                                                val locationPreferences = getSharedPreferences("location", MODE_PRIVATE)
-                                                val provinceFromPrefs = locationPreferences.getString("province", null)
-                                                val cityFromPrefs = locationPreferences.getString("city", null)
-                                                val countyFromPrefs = locationPreferences.getString("county", null)
-                                                if (!provinceFromPrefs.isNullOrBlank())
-                                                    holder.itemSubmitLocationProvince.apply { text = null ; append(provinceFromPrefs) }
-                                                if (!cityFromPrefs.isNullOrBlank())
-                                                    holder.itemSubmitLocationCity.apply { text = null ; append(cityFromPrefs) }
-                                                if (!countyFromPrefs.isNullOrBlank())
-                                                    holder.itemSubmitLocationCounty.apply { text = null ; append(countyFromPrefs) }
+                                        withContext(Dispatchers.Main) {
+                                            // auto fill in location
+                                            val locationPreferences = getSharedPreferences("location", MODE_PRIVATE)
+                                            val provinceFromPrefs = locationPreferences.getString("province", null)
+                                            val cityFromPrefs = locationPreferences.getString("city", null)
+                                            val countyFromPrefs = locationPreferences.getString("county", null)
+                                            if (!provinceFromPrefs.isNullOrBlank())
+                                                holder.itemSubmitLocationProvince.apply { text = null ; append(provinceFromPrefs) }
+                                            if (!cityFromPrefs.isNullOrBlank())
+                                                holder.itemSubmitLocationCity.apply { text = null ; append(cityFromPrefs) }
+                                            if (!countyFromPrefs.isNullOrBlank())
+                                                holder.itemSubmitLocationCounty.apply { text = null ; append(countyFromPrefs) }
 
-                                                holder.itemProgress.visibility = View.GONE
-                                                holder.itemSubmitLayout.visibility = View.VISIBLE
-                                                holder.itemSubmitButton.setOnClickListener {
-                                                    val province = holder.itemSubmitLocationProvince.text
-                                                    val city = holder.itemSubmitLocationCity.text
-                                                    val county = holder.itemSubmitLocationCounty.text
-                                                    if (!province.isNullOrBlank() && !city.isNullOrBlank() && !county.isNullOrBlank()) {
-                                                        // save location
-                                                        locationPreferences.edit().apply {
-                                                            if (provinceFromPrefs != province.toString()) putString("province", province.toString())
-                                                            if (cityFromPrefs != city.toString()) putString("city", city.toString())
-                                                            if (countyFromPrefs != county.toString()) putString("county", county.toString())
-                                                            apply()
-                                                        }
+                                            holder.itemProgress.visibility = View.GONE
+                                            holder.itemSubmitLayout.visibility = View.VISIBLE
+                                            holder.itemSubmitButton.setOnClickListener {
+                                                val province = holder.itemSubmitLocationProvince.text
+                                                val city = holder.itemSubmitLocationCity.text
+                                                val county = holder.itemSubmitLocationCounty.text
+                                                if (!province.isNullOrBlank() && !city.isNullOrBlank() && !county.isNullOrBlank()) {
+                                                    // save location
+                                                    locationPreferences.edit().apply {
+                                                        if (provinceFromPrefs != province.toString()) putString("province", province.toString())
+                                                        if (cityFromPrefs != city.toString()) putString("city", city.toString())
+                                                        if (countyFromPrefs != county.toString()) putString("county", county.toString())
+                                                        apply()
+                                                    }
 
-                                                        // construct data to be submitted
-                                                        val data = "{\"b418fa886b6a38bdce72569a70b1fa10\":\"${holder.itemSubmitTemperature.text}\",\"c77d35b16fb22ec70a1f33c315141dbb\":\"${TimeUtils.getTimeNoSecond()}\",\"2fca911d0600717cc5c2f57fc3702787\":[\"$province\",\"$city\",\"$county\"]}"
+                                                    // construct data to be submitted
+                                                    val data = "{\"2d4135d558f849e18a5dcc87b884cce5\":\"${holder.itemSubmitTemperature.text}\",\"c77d35b16fb22ec70a1f33c315141dbb\":\"${TimeUtils.getTimeNoSecond()}\",\"2fca911d0600717cc5c2f57fc3702787\":[\"$province\",\"$city\",\"$county\"]}"
 
-                                                        // submit data
-                                                        YibanUtils.submit(data, ex, taskDetail?.getString("WFId")?: "Null", object: NetworkTaskListener{
-                                                            override fun onTaskStart() {}
-                                                            override fun onTaskFinished(jsonObject: JSONObject?) {
-                                                                if (jsonObject?.getInt("code") == 0) {
-                                                                    YibanUtils.getShareUrl(jsonObject.getString("data"), object: NetworkTaskListener{
-                                                                        override fun onTaskStart() {}
-                                                                        override fun onTaskFinished(jsonObject: JSONObject?) {
-                                                                            // copy url to clipboard
-                                                                            val shareURL = jsonObject?.getJSONObject("data")?.getString("uri")
-                                                                            (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("share URL", shareURL))
+                                                    // submit data
+                                                    launch(Dispatchers.IO) {
+                                                        val submitResult = YibanUtils.submit(data, ex, taskDetail?.getString("WFId")?: "Null")
+                                                        if (submitResult?.getInt("code") == 0) {
+                                                            val shareResult = YibanUtils.getShareUrl(submitResult.getString("data"))
+                                                            // copy url to clipboard
+                                                            val shareURL = shareResult?.getJSONObject("data")?.getString("uri")
+                                                            (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("share URL", shareURL))
 
-                                                                            // show result, then collapse it
-                                                                            showResult(true, resources.getString(R.string.task_done), holder)
-                                                                            Handler(mainLooper).postDelayed({
-                                                                                collapseResult(holder)
-                                                                                expanded = false
-                                                                                mData.removeAt(position)
-                                                                                recyclerAdapter?.notifyItemRemoved(position)
-                                                                                loadData()
-                                                                            }, 1000)
-                                                                        }
-                                                                    })
-                                                                } else {
-                                                                    showResult(false, jsonObject?.getString("msg")?: resources.getString(R.string.unexpected_error), holder)
-                                                                    Handler(mainLooper).postDelayed({
-                                                                        holder.itemHintText.visibility = View.GONE
-                                                                        holder.itemSubmitLayout.visibility = View.VISIBLE
-                                                                    }, 1000)
-                                                                }
-                                                            }
-                                                        })
-                                                    } else {
-                                                        showResult(false, resources.getString(R.string.task_location_error), holder)
-                                                        Handler(mainLooper).postDelayed({
+                                                            // show result, then collapse it
+                                                            showResult(true, resources.getString(R.string.task_done), holder)
+                                                            Handler(mainLooper).postDelayed({
+                                                                collapseResult(holder)
+                                                                expanded = false
+                                                                mData.removeAt(position)
+                                                                recyclerAdapter?.notifyItemRemoved(position)
+                                                                loadData()
+                                                            }, 1000)
+                                                        } else {
+                                                            showResult(false, submitResult?.getString("msg")?: resources.getString(R.string.unexpected_error), holder)
+                                                            Handler(mainLooper).postDelayed({
                                                                 holder.itemHintText.visibility = View.GONE
                                                                 holder.itemSubmitLayout.visibility = View.VISIBLE
                                                             }, 1000)
+                                                        }
                                                     }
+                                                } else {
+                                                    showResult(false, resources.getString(R.string.task_location_error), holder)
+                                                    Handler(mainLooper).postDelayed({
+                                                            holder.itemHintText.visibility = View.GONE
+                                                            holder.itemSubmitLayout.visibility = View.VISIBLE
+                                                        }, 1000)
                                                 }
                                             }
                                         }
-                                    })
+                                    }
                                 }
-                                initialized = true
                             }
-                            expanded = true
+                            initialized = true
                         }
+                        expanded = true
                     }
                 } else {
                     holder.itemCard.setOnClickListener {
@@ -282,25 +263,13 @@ class TasksActivity: AppCompatActivity() {
                         holder.itemDivider.visibility = View.VISIBLE
                         holder.itemProgress.visibility = View.VISIBLE
                         mData[position].rawJSONData?.optString("TaskId")?.let { taskID ->
-                            YibanUtils.getTaskDetail(taskID, object: NetworkTaskListener {
-                                override fun onTaskStart() {}
-                                override fun onTaskFinished(jsonObject: JSONObject?) {
-                                    // initialize extra data
-                                    val taskDetail = jsonObject?.getJSONObject("data")
-                                    // get share url by string InitiateId
-                                    if (taskDetail != null) {
-                                        YibanUtils.getShareUrl(taskDetail.getString("InitiateId"), object: NetworkTaskListener {
-                                            override fun onTaskStart() {}
-
-                                            override fun onTaskFinished(jsonObject: JSONObject?) {
-                                                val shareURL = jsonObject?.getJSONObject("data")?.getString("uri")
-                                                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(shareURL)))
-                                            }
-                                        })
-                                        collapseResult(holder)
-                                    }
+                            YibanUtils.getTaskDetail(taskID)?.getJSONObject("data").also { taskDetail ->
+                                // get share url by string InitiateId
+                                if (taskDetail != null) {
+                                    val shareURL = YibanUtils.getShareUrl(taskDetail.getString("InitiateId"))?.getJSONObject("data")?.getString("uri")
+                                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(shareURL)))
                                 }
-                            })
+                            }
                         }
                     }
                 }
