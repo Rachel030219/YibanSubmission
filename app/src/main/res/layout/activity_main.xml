@@ -18,7 +18,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_marginVertical="8dp"
             android:hint="@string/login_mobile"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+            style="@style/Widget.TextInputField">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/login_mobile"
@@ -34,7 +34,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_marginVertical="8dp"
             android:hint="@string/login_password"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+            style="@style/Widget.TextInputField">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/login_password"
