@@ -21,6 +21,7 @@
     <string name="no_uncompleted_tasks">找不到未完成的打卡。</string>
     <string name="no_completed_tasks">找不到已完成的打卡。</string>
     <string name="task_location_error">请检查位置。</string>
+    <string name="task_id_error">获取任务 ID 失败。</string>
     <string name="task_done">完成！已复制打卡结果链接。</string>
     <string name="task_menu_switch">展示已完成/未完成</string>
     <string name="task_menu_info">信息与常见问题</string>

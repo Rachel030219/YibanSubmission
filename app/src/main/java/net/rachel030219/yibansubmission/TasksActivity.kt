@@ -137,6 +137,7 @@ class TasksActivity: AppCompatActivity() {
                 targetHolder.itemHintText.setTextColor(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) resources.getColor(R.color.primary_text, theme) else resources.getColor(R.color.primary_text))
             targetHolder.itemHintText.text = message
             targetHolder.itemSubmitLayout.visibility = View.GONE
+            targetHolder.itemProgress.visibility = View.GONE
             targetHolder.itemHintText.visibility = View.VISIBLE
         }
     }
@@ -176,86 +177,106 @@ class TasksActivity: AppCompatActivity() {
                             if (initialized) {
                                 holder.itemSubmitLayout.visibility = View.VISIBLE
                             } else {
-                                holder.itemProgress.visibility = View.GONE
-                                mData[position].rawJSONData?.optString("TaskId")?.let { taskID ->
-                                    GlobalScope.launch {
+                                holder.itemProgress.visibility = View.VISIBLE
+                                val taskID = mData[position].rawJSONData?.optString("TaskId")
+
+                                // auto fill in location
+                                val locationPreferences = getSharedPreferences("location", MODE_PRIVATE)
+                                val provinceFromPrefs = locationPreferences.getString("province", null)
+                                val cityFromPrefs = locationPreferences.getString("city", null)
+                                val countyFromPrefs = locationPreferences.getString("county", null)
+                                if (!provinceFromPrefs.isNullOrBlank())
+                                    holder.itemSubmitLocationProvince.apply { text = null ; append(provinceFromPrefs) }
+                                if (!cityFromPrefs.isNullOrBlank())
+                                    holder.itemSubmitLocationCity.apply { text = null ; append(cityFromPrefs) }
+                                if (!countyFromPrefs.isNullOrBlank())
+                                    holder.itemSubmitLocationCounty.apply { text = null ; append(countyFromPrefs) }
+
+                                if (taskID != null) {
+                                    CoroutineScope(Dispatchers.IO).launch {
                                         val jsonDetailResult = YibanUtils.getTaskDetail(taskID)
                                         // initialize extra data
                                         val taskDetail = jsonDetailResult?.getJSONObject("data")
                                         val ex = "{\"TaskId\": \"${taskDetail?.getString("Id")}\", \"title\": \"任务信息\", \"content\": [{\"label\": \"任务名称\", \"value\": \"${taskDetail?.getString("Title")}\"}, {\"label\": \"发布机构\", \"value\": \"${taskDetail?.getString("PubOrgName")}\"}, {\"label\": \"发布人\", \"value\": \"${taskDetail?.getString("PubPersonName")}\"}]}"
 
                                         withContext(Dispatchers.Main) {
-                                            // auto fill in location
-                                            val locationPreferences = getSharedPreferences("location", MODE_PRIVATE)
-                                            val provinceFromPrefs = locationPreferences.getString("province", null)
-                                            val cityFromPrefs = locationPreferences.getString("city", null)
-                                            val countyFromPrefs = locationPreferences.getString("county", null)
-                                            if (!provinceFromPrefs.isNullOrBlank())
-                                                holder.itemSubmitLocationProvince.apply { text = null ; append(provinceFromPrefs) }
-                                            if (!cityFromPrefs.isNullOrBlank())
-                                                holder.itemSubmitLocationCity.apply { text = null ; append(cityFromPrefs) }
-                                            if (!countyFromPrefs.isNullOrBlank())
-                                                holder.itemSubmitLocationCounty.apply { text = null ; append(countyFromPrefs) }
-
                                             holder.itemProgress.visibility = View.GONE
                                             holder.itemSubmitLayout.visibility = View.VISIBLE
-                                            holder.itemSubmitButton.setOnClickListener {
-                                                val province = holder.itemSubmitLocationProvince.text
-                                                val city = holder.itemSubmitLocationCity.text
-                                                val county = holder.itemSubmitLocationCounty.text
-                                                if (!province.isNullOrBlank() && !city.isNullOrBlank() && !county.isNullOrBlank()) {
-                                                    // save location
-                                                    locationPreferences.edit().apply {
-                                                        if (provinceFromPrefs != province.toString()) putString("province", province.toString())
-                                                        if (cityFromPrefs != city.toString()) putString("city", city.toString())
-                                                        if (countyFromPrefs != county.toString()) putString("county", county.toString())
-                                                        apply()
+                                        }
+                                        holder.itemSubmitButton.setOnClickListener {
+                                            val province = holder.itemSubmitLocationProvince.text
+                                            val city = holder.itemSubmitLocationCity.text
+                                            val county = holder.itemSubmitLocationCounty.text
+                                            if (!province.isNullOrBlank() && !city.isNullOrBlank() && !county.isNullOrBlank()) {
+                                                // save location
+                                                locationPreferences.edit().apply {
+                                                    if (provinceFromPrefs != province.toString()) putString("province", province.toString())
+                                                    if (cityFromPrefs != city.toString()) putString("city", city.toString())
+                                                    if (countyFromPrefs != county.toString()) putString("county", county.toString())
+                                                    apply()
+                                                }
+                                                // submit data
+                                                holder.itemSubmitLayout.visibility = View.GONE
+                                                holder.itemProgress.visibility = View.VISIBLE
+                                                launch(Dispatchers.IO) {
+                                                    val extras2BSent = Bundle().apply {
+                                                        putStringArray("location", arrayOf(province.toString(), city.toString(), county.toString()))
+                                                        putString("ex", ex)
+                                                        putString("wfid", taskDetail?.getString("WFId"))
+                                                        putBoolean("silent", true)
                                                     }
+                                                    val taskReceiver = object : TaskCheckAffiliatedReceiver() {
+                                                        override fun onFinish(submitResult: JSONObject?) {
+                                                            if (submitResult?.getInt("code") == 0) {
+                                                                val shareResult = YibanUtils.getShareUrl(submitResult.getString("data"))
+                                                                // copy url to clipboard
+                                                                val shareURL = shareResult?.getJSONObject("data")?.getString("uri")
+                                                                (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("share URL", shareURL))
 
-                                                    // construct data to be submitted
-                                                    val data = "{\"2d4135d558f849e18a5dcc87b884cce5\":\"${holder.itemSubmitTemperature.text}\",\"c77d35b16fb22ec70a1f33c315141dbb\":\"${TimeUtils.getTimeNoSecond()}\",\"2fca911d0600717cc5c2f57fc3702787\":[\"$province\",\"$city\",\"$county\"]}"
-
-                                                    // submit data
-                                                    launch(Dispatchers.IO) {
-                                                        val submitResult = YibanUtils.submit(data, ex, taskDetail?.getString("WFId")?: "Null")
-                                                        if (submitResult?.getInt("code") == 0) {
-                                                            val shareResult = YibanUtils.getShareUrl(submitResult.getString("data"))
-                                                            // copy url to clipboard
-                                                            val shareURL = shareResult?.getJSONObject("data")?.getString("uri")
-                                                            (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("share URL", shareURL))
-
-                                                            // show result, then collapse it
-                                                            showResult(true, resources.getString(R.string.task_done), holder)
-                                                            Handler(mainLooper).postDelayed({
-                                                                collapseResult(holder)
-                                                                expanded = false
-                                                                mData.removeAt(position)
-                                                                recyclerAdapter?.notifyItemRemoved(position)
-                                                                loadData()
-                                                            }, 1000)
-                                                        } else {
-                                                            showResult(false, submitResult?.getString("msg")?: resources.getString(R.string.unexpected_error), holder)
-                                                            Handler(mainLooper).postDelayed({
-                                                                holder.itemHintText.visibility = View.GONE
-                                                                holder.itemSubmitLayout.visibility = View.VISIBLE
-                                                            }, 1000)
+                                                                // show result, then collapse it
+                                                                showResult(true, resources.getString(R.string.task_done), holder)
+                                                                Handler(mainLooper).postDelayed({
+                                                                    collapseResult(holder)
+                                                                    expanded = false
+                                                                    mData.removeAt(position)
+                                                                    recyclerAdapter?.notifyItemRemoved(position)
+                                                                    loadData()
+                                                                }, 1000)
+                                                            } else {
+                                                                showResult(false, submitResult?.getString("msg")?: resources.getString(R.string.unexpected_error), holder)
+                                                                Handler(mainLooper).postDelayed({
+                                                                    holder.itemHintText.visibility = View.GONE
+                                                                    holder.itemSubmitLayout.visibility = View.VISIBLE
+                                                                }, 1000)
+                                                            }
                                                         }
                                                     }
-                                                } else {
-                                                    showResult(false, resources.getString(R.string.task_location_error), holder)
-                                                    Handler(mainLooper).postDelayed({
-                                                            holder.itemHintText.visibility = View.GONE
-                                                            holder.itemSubmitLayout.visibility = View.VISIBLE
-                                                        }, 1000)
+                                                    val intent2BSent = Intent(this@TasksActivity, taskReceiver.javaClass).putExtras(extras2BSent).apply {
+                                                        action = "net.rachel030219.yibansubmission.SUBMIT"
+                                                        putExtras(extras2BSent)
+                                                    }
+                                                    sendBroadcast(intent2BSent)
                                                 }
+                                            } else {
+                                                showResult(false, resources.getString(R.string.task_location_error), holder)
+                                                Handler(mainLooper).postDelayed({
+                                                    holder.itemHintText.visibility = View.GONE
+                                                    holder.itemSubmitLayout.visibility = View.VISIBLE
+                                                }, 1000)
                                             }
                                         }
                                     }
+                                } else {
+                                    showResult(false, resources.getString(R.string.task_id_error), holder)
+                                    Handler(mainLooper).postDelayed({
+                                        holder.itemHintText.visibility = View.GONE
+                                        holder.itemSubmitLayout.visibility = View.VISIBLE
+                                    }, 1000)
                                 }
+                                initialized = true
                             }
-                            initialized = true
+                            expanded = true
                         }
-                        expanded = true
                     }
                 } else {
                     holder.itemCard.setOnClickListener {

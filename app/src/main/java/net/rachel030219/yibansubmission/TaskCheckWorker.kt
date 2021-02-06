@@ -97,13 +97,13 @@ class TaskCheckWorker (private val context: Context, params: WorkerParameters): 
                                                         1,
                                                         Intent(context, TaskCheckAffiliatedReceiver::class.java).apply { action = "net.rachel030219.yibansubmission.SUBMIT"; putExtras(extras2BSent) },
                                                         PendingIntent.FLAG_CANCEL_CURRENT)).addRemoteInput(remoteInput).build())
-                                        addAction(NotificationCompat.Action.Builder(null, context.getString(R.string.task_notification_action_delay),
-                                                PendingIntent.getBroadcast(
-                                                        context,
-                                                        2,
-                                                        Intent(context, TaskCheckAffiliatedReceiver::class.java).apply { action = "net.rachel030219.yibansubmission.DELAY" },
-                                                        PendingIntent.FLAG_CANCEL_CURRENT)).build())
                                     }
+                                    addAction(NotificationCompat.Action.Builder(null, context.getString(R.string.task_notification_action_delay),
+                                            PendingIntent.getBroadcast(
+                                                    context,
+                                                    2,
+                                                    Intent(context, TaskCheckAffiliatedReceiver::class.java).apply { action = "net.rachel030219.yibansubmission.DELAY" },
+                                                    PendingIntent.FLAG_CANCEL_CURRENT)).build())
                                 }.build()
                                 NotificationManagerCompat.from(context).notify(233, taskNotification)
                                 scheduleTask(context)

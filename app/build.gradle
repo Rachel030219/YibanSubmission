@@ -12,7 +12,7 @@ android {
         applicationId "net.rachel030219.yibansubmission"
         minSdkVersion 21
         targetSdkVersion 30
-        versionCode 19
+        versionCode 20
         versionName "0.2 ALPHA"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -40,11 +40,11 @@ dependencies {
     implementation "androidx.cardview:cardview:1.0.0"
     implementation "androidx.recyclerview:recyclerview:1.2.0-beta01"
     implementation "androidx.preference:preference-ktx:1.1.1"
-    implementation 'androidx.work:work-runtime-ktx:2.4.0'
+    implementation 'androidx.work:work-runtime-ktx:2.5.0'
     implementation 'net.danlew:android.joda:2.10.9.1'
     implementation 'com.google.android.material:material:1.2.1'
     implementation 'com.squareup.okhttp3:okhttp:4.9.0'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.1'
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
