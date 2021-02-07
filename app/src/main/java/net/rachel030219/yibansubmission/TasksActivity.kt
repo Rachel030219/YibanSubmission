@@ -13,12 +13,14 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.android.synthetic.main.activity_tasks.*
 import kotlinx.coroutines.*
+import org.json.JSONException
 import org.json.JSONObject
 import java.util.*
 
@@ -73,24 +75,53 @@ class TasksActivity: AppCompatActivity() {
         tasks_hint.visibility = View.GONE
         tasks_progress_text.text = resources.getString(R.string.loading)
         tasks_progress_layout.visibility = View.VISIBLE
-        GlobalScope.launch {
-            YibanUtils.getHome()
-            val authResult = YibanUtils.auth()
-            if (authResult?.optBoolean("error") != true) {
-                withContext(Dispatchers.Main) {
-                    title = if (showingUncompleted) {
-                        processResult(YibanUtils.getUncompletedList())
-                        resources.getString(R.string.uncompleted_label, YibanUtils.name)
-                    } else {
-                        processResult(YibanUtils.getCompletedList())
-                        resources.getString(R.string.completed_label, YibanUtils.name)
-                    }
+        CoroutineScope(Dispatchers.IO).launch {
+            if (!YibanUtils.loggedIn) {
+                // read saved account and password
+                val preferences = PreferenceManager.getDefaultSharedPreferences(this@TasksActivity)
+                val mobileFromPref = preferences.getString("mobile", null)
+                val passwordFromPref = preferences.getString("password", null)
+                if (mobileFromPref != null && passwordFromPref != null) {
+                    // automatically login
+                    YibanUtils.initialize(mobileFromPref, passwordFromPref)
+                    launch(Dispatchers.IO) {
+                        val loginResult = YibanUtils.login()
+                        if (loginResult == null) {
+                            launchLoginActivity()
+                        } else {
+                            if (loginResult.getInt("response") != 100) {
+                                launchLoginActivity()
+                            }
+                        }
+                    }.join()
+                } else {
+                    launchLoginActivity()
                 }
-            } else {
-                withContext(Dispatchers.Main) {
-                    tasks_progress_layout.visibility = View.INVISIBLE
-                    tasks_hint.text = authResult.optString("msg")?: resources.getString(R.string.unexpected_error)
-                    tasks_hint.visibility = View.VISIBLE
+            }
+            if (YibanUtils.loggedIn) {
+                try {
+                    YibanUtils.getHome()
+                    val authResult = YibanUtils.auth()
+                    if (authResult?.optBoolean("error") != true) {
+                        withContext(Dispatchers.Main) {
+                            title = if (showingUncompleted) {
+                                processResult(YibanUtils.getUncompletedList())
+                                resources.getString(R.string.uncompleted_label, YibanUtils.name)
+                            } else {
+                                processResult(YibanUtils.getCompletedList())
+                                resources.getString(R.string.completed_label, YibanUtils.name)
+                            }
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            tasks_progress_layout.visibility = View.INVISIBLE
+                            tasks_hint.text = authResult.optString("msg")?: resources.getString(R.string.unexpected_error)
+                            tasks_hint.visibility = View.VISIBLE
+                        }
+                    }
+                } catch (e: JSONException) {
+                    YibanUtils.loggedIn = false
+                    launchLoginActivity()
                 }
             }
         }
@@ -148,7 +179,12 @@ class TasksActivity: AppCompatActivity() {
             targetHolder.itemIndicator.rotation = 0f
         }
     }
-    
+
+    suspend fun launchLoginActivity() = withContext(Dispatchers.Main){
+        startActivity(Intent(this@TasksActivity, LoginActivity::class.java))
+        finish()
+    }
+
     inner class Adapter: RecyclerView.Adapter<Holder> () {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
             return Holder(LayoutInflater.from(this@TasksActivity).inflate(R.layout.item_tasks, parent, false))

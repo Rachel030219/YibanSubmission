@@ -24,6 +24,9 @@ object YibanUtils {
     var name = ""
     private var iapp = ""
 
+    // indicate whether user has logged in for LoginActivity and TasksActivity
+    var loggedIn = false
+
     private suspend fun request (originalUrl: String, method: Int = GET, params: Map<String, String>? = null, headers: Headers = HEADERS, cookies: Map<String, String> = COOKIES) = withContext(Dispatchers.IO) {
         if (okHttpClient == null)
             okHttpClient = OkHttpClient()
@@ -84,6 +87,7 @@ object YibanUtils {
         if (result != null && result.getInt("response") == 100) {
             // get and save access token
             accessToken = result.getJSONObject("data").getJSONObject("user").getString("access_token")
+            loggedIn = true
             return@runBlocking result
         } else
             return@runBlocking null

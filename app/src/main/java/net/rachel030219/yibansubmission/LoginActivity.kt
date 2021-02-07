@@ -25,7 +25,7 @@ class LoginActivity: AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         // read saved account and password
-        val preferences = PreferenceManager.getDefaultSharedPreferences(this@LoginActivity)
+        val preferences = PreferenceManager.getDefaultSharedPreferences(this)
         val mobileFromPref = preferences.getString("mobile", null)
         val passwordFromPref = preferences.getString("password", null)
         // automatically fill in data
@@ -57,7 +57,7 @@ class LoginActivity: AppCompatActivity() {
             // process logging in
             YibanUtils.initialize(mobile, password)
             CoroutineScope(Dispatchers.Main).launch {
-                val loginResult = withContext(Dispatchers.Main) { YibanUtils.login() }
+                val loginResult = withContext(Dispatchers.IO) { YibanUtils.login() }
                 if (loginResult == null) {
                     login_progress_text.text = resources.getString(R.string.unexpected_error)
                 } else {

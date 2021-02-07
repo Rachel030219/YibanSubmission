@@ -9,14 +9,16 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.YibanSubmission">
-        <activity android:name=".LoginActivity">
+        <activity android:name=".LoginActivity"
+            android:label="@string/login_label"/>
+        <activity android:name=".TasksActivity"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".TasksActivity"/>
         <activity android:name=".TaskPreferenceActivity"
             android:label="@string/task_menu_settings"/>
         <receiver android:name=".TaskCheckAffiliatedReceiver"

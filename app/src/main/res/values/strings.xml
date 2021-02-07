@@ -2,6 +2,7 @@
     <string name="app_name">Yiban Submission</string>
     <string name="unexpected_error">Something unexpected occurred.</string>
 
+    <string name="login_label">Please login first</string>
     <string name="login_mobile">Mobile number</string>
     <string name="login_password">Password</string>
     <string name="login_button">Login</string>

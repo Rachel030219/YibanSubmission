@@ -3,6 +3,7 @@
     <string name="app_name">易班打卡助手</string>
     <string name="unexpected_error">发生了一点意外</string>
 
+    <string name="login_label">请先登陆</string>
     <string name="login_mobile">手机号码</string>
     <string name="login_password">密码</string>
     <string name="login_button">登陆</string>
