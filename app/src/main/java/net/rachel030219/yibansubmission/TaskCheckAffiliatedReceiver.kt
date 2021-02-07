@@ -30,12 +30,12 @@ abstract class TaskCheckAffiliatedReceiver: BroadcastReceiver() {
                 }
                 "net.rachel030219.yibansubmission.SUBMIT" -> {
                     val locationArray = intent.getStringArrayExtra("location")
-                    val temperature = RemoteInput.getResultsFromIntent(intent)?.getCharSequence("KEY_TEMPERATURE")?.toString()?.toFloatOrNull()
+                    val temperature = RemoteInput.getResultsFromIntent(intent)?.getCharSequence("KEY_TEMPERATURE")?.toString()?.toFloatOrNull() ?: intent.getFloatExtra("temperature", -1F)
                     val ex = intent.getStringExtra("ex")
                     val wfid = intent.getStringExtra("wfid")
                     val silentSubmit = intent.getBooleanExtra("silent", false)
 
-                    if (locationArray != null && temperature != null && !ex.isNullOrBlank() && !wfid.isNullOrBlank()) {
+                    if (locationArray != null && temperature > 0 && !ex.isNullOrBlank() && !wfid.isNullOrBlank()) {
                         // construct data to be submitted
                         val data = "{\"2d4135d558f849e18a5dcc87b884cce5\":\"${temperature}\",\"c77d35b16fb22ec70a1f33c315141dbb\":\"${TimeUtils.getTimeNoSecond()}\",\"2fca911d0600717cc5c2f57fc3702787\":${
                             locationArray.joinToString(",", "[", "]") { "\"" + it + "\"" }

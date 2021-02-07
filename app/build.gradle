@@ -12,7 +12,7 @@ android {
         applicationId "net.rachel030219.yibansubmission"
         minSdkVersion 21
         targetSdkVersion 30
-        versionCode 20
+        versionCode 21
         versionName "0.2 ALPHA"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

@@ -1,9 +1,6 @@
 package net.rachel030219.yibansubmission
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.content.Intent
+import android.content.*
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -196,6 +193,7 @@ class TasksActivity: AppCompatActivity() {
                                     CoroutineScope(Dispatchers.IO).launch {
                                         val jsonDetailResult = YibanUtils.getTaskDetail(taskID)
                                         // initialize extra data
+                                        // TODO: serialize json and send it directly to the receiver
                                         val taskDetail = jsonDetailResult?.getJSONObject("data")
                                         val ex = "{\"TaskId\": \"${taskDetail?.getString("Id")}\", \"title\": \"任务信息\", \"content\": [{\"label\": \"任务名称\", \"value\": \"${taskDetail?.getString("Title")}\"}, {\"label\": \"发布机构\", \"value\": \"${taskDetail?.getString("PubOrgName")}\"}, {\"label\": \"发布人\", \"value\": \"${taskDetail?.getString("PubPersonName")}\"}]}"
 
@@ -218,11 +216,12 @@ class TasksActivity: AppCompatActivity() {
                                                 // submit data
                                                 holder.itemSubmitLayout.visibility = View.GONE
                                                 holder.itemProgress.visibility = View.VISIBLE
-                                                launch(Dispatchers.IO) {
+                                                CoroutineScope(Dispatchers.IO).launch {
                                                     val extras2BSent = Bundle().apply {
                                                         putStringArray("location", arrayOf(province.toString(), city.toString(), county.toString()))
                                                         putString("ex", ex)
                                                         putString("wfid", taskDetail?.getString("WFId"))
+                                                        putFloat("temperature", holder.itemSubmitTemperature.text.toString().toFloatOrNull() ?: -1F)
                                                         putBoolean("silent", true)
                                                     }
                                                     val taskReceiver = object : TaskCheckAffiliatedReceiver() {
@@ -251,11 +250,13 @@ class TasksActivity: AppCompatActivity() {
                                                             }
                                                         }
                                                     }
-                                                    val intent2BSent = Intent(this@TasksActivity, taskReceiver.javaClass).putExtras(extras2BSent).apply {
+                                                    registerReceiver(taskReceiver, IntentFilter("net.rachel030219.yibansubmission.SUBMIT"))
+                                                    val intent2BSent = Intent().apply {
                                                         action = "net.rachel030219.yibansubmission.SUBMIT"
                                                         putExtras(extras2BSent)
                                                     }
                                                     sendBroadcast(intent2BSent)
+                                                    unregisterReceiver(taskReceiver)
                                                 }
                                             } else {
                                                 showResult(false, resources.getString(R.string.task_location_error), holder)
