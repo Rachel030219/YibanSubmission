@@ -180,7 +180,7 @@ class TasksActivity: AppCompatActivity() {
         }
     }
 
-    suspend fun launchLoginActivity() = withContext(Dispatchers.Main){
+    private suspend fun launchLoginActivity() = withContext(Dispatchers.Main){
         startActivity(Intent(this@TasksActivity, LoginActivity::class.java))
         finish()
     }
@@ -253,46 +253,30 @@ class TasksActivity: AppCompatActivity() {
                                                 holder.itemSubmitLayout.visibility = View.GONE
                                                 holder.itemProgress.visibility = View.VISIBLE
                                                 CoroutineScope(Dispatchers.IO).launch {
-                                                    val extras2BSent = Bundle().apply {
-                                                        putStringArray("location", arrayOf(province.toString(), city.toString(), county.toString()))
-                                                        putString("ex", ex)
-                                                        putString("wfid", taskDetail?.getString("WFId"))
-                                                        putFloat("temperature", holder.itemSubmitTemperature.text.toString().toFloatOrNull() ?: -1F)
-                                                        putBoolean("silent", true)
-                                                    }
-                                                    val taskReceiver = object : TaskCheckAffiliatedReceiver() {
-                                                        override fun onFinish(submitResult: JSONObject?) {
-                                                            if (submitResult?.getInt("code") == 0) {
-                                                                val shareResult = YibanUtils.getShareUrl(submitResult.getString("data"))
-                                                                // copy url to clipboard
-                                                                val shareURL = shareResult?.getJSONObject("data")?.getString("uri")
-                                                                (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("share URL", shareURL))
+                                                    val data = "{\"2d4135d558f849e18a5dcc87b884cce5\":\"${holder.itemSubmitTemperature.text.toString()}\",\"c77d35b16fb22ec70a1f33c315141dbb\":\"${TimeUtils.getTimeNoSecond()}\",\"2fca911d0600717cc5c2f57fc3702787\":[\"$province\",\"$city\",\"$county\"]}"
+                                                    val submitResult = YibanUtils.submit(data, ex, taskDetail?.getString("WFId") ?: "null")
+                                                    if (submitResult?.getInt("code") == 0) {
+                                                        val shareResult = YibanUtils.getShareUrl(submitResult.getString("data"))
+                                                        // copy url to clipboard
+                                                        val shareURL = shareResult?.getJSONObject("data")?.getString("uri")
+                                                        (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("share URL", shareURL))
 
-                                                                // show result, then collapse it
-                                                                showResult(true, resources.getString(R.string.task_done), holder)
-                                                                Handler(mainLooper).postDelayed({
-                                                                    collapseResult(holder)
-                                                                    expanded = false
-                                                                    mData.removeAt(position)
-                                                                    recyclerAdapter?.notifyItemRemoved(position)
-                                                                    loadData()
-                                                                }, 1000)
-                                                            } else {
-                                                                showResult(false, submitResult?.getString("msg")?: resources.getString(R.string.unexpected_error), holder)
-                                                                Handler(mainLooper).postDelayed({
-                                                                    holder.itemHintText.visibility = View.GONE
-                                                                    holder.itemSubmitLayout.visibility = View.VISIBLE
-                                                                }, 1000)
-                                                            }
-                                                        }
+                                                        // show result, then collapse it
+                                                        showResult(true, resources.getString(R.string.task_done), holder)
+                                                        Handler(mainLooper).postDelayed({
+                                                            collapseResult(holder)
+                                                            expanded = false
+                                                            mData.removeAt(position)
+                                                            recyclerAdapter?.notifyItemRemoved(position)
+                                                            loadData()
+                                                        }, 1000)
+                                                    } else {
+                                                        showResult(false, submitResult?.getString("msg")?: resources.getString(R.string.unexpected_error), holder)
+                                                        Handler(mainLooper).postDelayed({
+                                                            holder.itemHintText.visibility = View.GONE
+                                                            holder.itemSubmitLayout.visibility = View.VISIBLE
+                                                        }, 1000)
                                                     }
-                                                    registerReceiver(taskReceiver, IntentFilter("net.rachel030219.yibansubmission.SUBMIT"))
-                                                    val intent2BSent = Intent().apply {
-                                                        action = "net.rachel030219.yibansubmission.SUBMIT"
-                                                        putExtras(extras2BSent)
-                                                    }
-                                                    sendBroadcast(intent2BSent)
-                                                    unregisterReceiver(taskReceiver)
                                                 }
                                             } else {
                                                 showResult(false, resources.getString(R.string.task_location_error), holder)
