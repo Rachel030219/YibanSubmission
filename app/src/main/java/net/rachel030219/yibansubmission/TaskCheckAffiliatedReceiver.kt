@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
-abstract class TaskCheckAffiliatedReceiver: BroadcastReceiver() {
+class TaskCheckAffiliatedReceiver: BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         Log.d("TAG", "onReceive:called ")
         if (context != null && intent != null) {
@@ -30,33 +30,27 @@ abstract class TaskCheckAffiliatedReceiver: BroadcastReceiver() {
                 }
                 "net.rachel030219.yibansubmission.SUBMIT" -> {
                     val locationArray = intent.getStringArrayExtra("location")
-                    val temperature = RemoteInput.getResultsFromIntent(intent)?.getCharSequence("KEY_TEMPERATURE")?.toString()?.toFloatOrNull() ?: intent.getFloatExtra("temperature", -1F)
+                    val temperature = RemoteInput.getResultsFromIntent(intent)?.getCharSequence("KEY_TEMPERATURE")?.toString()?.toFloatOrNull()
                     val ex = intent.getStringExtra("ex")
                     val wfid = intent.getStringExtra("wfid")
-                    val silentSubmit = intent.getBooleanExtra("silent", false)
+                    val title = intent.getStringExtra("title")
 
-                    if (locationArray != null && temperature > 0 && !ex.isNullOrBlank() && !wfid.isNullOrBlank()) {
+                    if (locationArray != null && temperature != null && !ex.isNullOrBlank() && !wfid.isNullOrBlank()) {
                         // construct data to be submitted
                         val data = "{\"2d4135d558f849e18a5dcc87b884cce5\":\"${temperature}\",\"c77d35b16fb22ec70a1f33c315141dbb\":\"${TimeUtils.getTimeNoSecond()}\",\"2fca911d0600717cc5c2f57fc3702787\":${
                             locationArray.joinToString(",", "[", "]") { "\"" + it + "\"" }
                         }}"
                         CoroutineScope(Dispatchers.IO).launch {
-                            // if not silent, send notifications
-                            var title: String? = null
-                            if (!silentSubmit) {
-                                title = intent.getStringExtra("title")
-                                val submittingNotification = NotificationCompat.Builder(context, "TASK").apply {
-                                    setSmallIcon(R.drawable.ic_baseline_playlist_add_check_24)
-                                    setContentTitle(title)
-                                    setContentText(context.getString(R.string.task_notification_submitting))
-                                    setOngoing(true)
-                                }.build()
-                                NotificationManagerCompat.from(context).notify(233, submittingNotification)
-                            }
+                            // send notifications
+                            val submittingNotification = NotificationCompat.Builder(context, "TASK").apply {
+                                setSmallIcon(R.drawable.ic_baseline_playlist_add_check_24)
+                                setContentTitle(title)
+                                setContentText(context.getString(R.string.task_notification_submitting))
+                                setOngoing(true)
+                            }.build()
+                            NotificationManagerCompat.from(context).notify(233, submittingNotification)
                             val submitResult = YibanUtils.submit(data, ex, wfid)
-                            // send signal back to the activity
-                            onFinish(submitResult)
-                            if (!silentSubmit && title != null) sendFinishNotification(context, title, submitResult)
+                            if (title != null) sendFinishNotification(context, title, submitResult)
                         }
                     }
                 }
@@ -93,6 +87,4 @@ abstract class TaskCheckAffiliatedReceiver: BroadcastReceiver() {
             notificationManager.notify(233, submitErrorNotification)
         }
     }
-
-    abstract fun onFinish(submitResult: JSONObject?)
 }

@@ -28,7 +28,7 @@ class TaskCheckWorker (private val context: Context, params: WorkerParameters): 
             if (loginResult?.getInt("response") == 100) {
                 YibanUtils.getHome()
                 val authResult = YibanUtils.auth()
-                if (authResult?.optBoolean("error") == false) {
+                if (authResult?.optBoolean("error") != true) {
                     val listResult = YibanUtils.getUncompletedList()
                     // fetch tasks
                     val tasksList = mutableListOf<JSONObject>()
